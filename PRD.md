@@ -29,12 +29,13 @@ Open Lumina is a straightforward native Apple-platform viewer for X-ray studies 
 - This PRD records durable product context and settled decisions, not operational task metadata.
 
 ## 5. Current Capabilities
-- The repository is initialized locally and not connected to GitHub publishing yet.
+- The repository is published on GitHub.
 - The repository contains the first native macOS app implementation and is being shaped for future iOS feature parity.
 - The app can open local study folders and local ISO images.
 - The app can discover studies via `DICOMDIR` first and fall back to scanning DICOM files when needed.
 - The app can render a narrow first-build subset of grayscale DICOM X-ray images.
 - Synthetic unit tests cover parsing, rendering, cleanup, and view-model navigation.
+- GitHub Actions can run CI builds and package unsigned macOS release artifacts.
 
 ## 6. Durable Decisions
 - Open Lumina is shipping on macOS first, but every new feature must be designed for eventual iOS parity.
@@ -45,7 +46,9 @@ Open Lumina is a straightforward native Apple-platform viewer for X-ray studies 
 - Exact UI parity is not required, but functional parity is the default expectation across macOS and iOS.
 - Any feature that cannot reach parity because of platform restrictions must document the exception explicitly in this PRD.
 - The repository should remain public-GitHub safe from day one.
+- CI should produce downloadable macOS build artifacts for public testing, while keeping signing credentials out of the repository.
 - The product should stay compatible with future Mac App Store distribution.
+- Unsigned GitHub release artifacts are acceptable for early OSS distribution, but Developer ID signing and notarization are required for a frictionless public install flow.
 - Default privacy posture is local-only and session-scoped. Opened studies, extracted ISO contents, and identifying metadata are not stored durably by default.
 - v1 should prefer Apple frameworks and avoid third-party telemetry, cloud dependencies, and secret-bearing configuration.
 - The first study-discovery contract is `DICOMDIR` first with loose DICOM fallback.

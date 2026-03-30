@@ -12,10 +12,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "OpenLumina",
-            path: "OpenLumina/Sources",
-            resources: [
-                .process("../Resources")
-            ]
+            path: "OpenLumina/Sources"
         ),
         .testTarget(
             name: "OpenLuminaTests",

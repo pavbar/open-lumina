@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package-macos:
+    runs-on: macos-15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Build release app
+        run: >
+          xcodebuild
+          -project OpenLumina.xcodeproj
+          -scheme OpenLumina
+          -configuration Release
+          -derivedDataPath DerivedData
+          -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO
+          build
+
+      - name: Package app bundle
+        run: |
+          APP_PATH="DerivedData/Build/Products/Release/OpenLumina.app"
+          ZIP_PATH="OpenLumina-macOS-unsigned.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
+          shasum -a 256 "$ZIP_PATH" > "${ZIP_PATH}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: OpenLumina-macOS-unsigned
+          path: |
+            OpenLumina-macOS-unsigned.zip
+            OpenLumina-macOS-unsigned.zip.sha256
+
+      - name: Publish GitHub release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+        with:
+          files: |
+            OpenLumina-macOS-unsigned.zip
+            OpenLumina-macOS-unsigned.zip.sha256
+          generate_release_notes: true
