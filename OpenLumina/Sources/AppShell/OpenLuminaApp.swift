@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -8,6 +9,9 @@ struct OpenLuminaApp: App {
         WindowGroup {
             StudyBrowserView(viewModel: viewModel)
                 .frame(minWidth: 1100, minHeight: 720)
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+                    viewModel.closeStudy()
+                }
         }
         .commands {
             CommandGroup(after: .newItem) {

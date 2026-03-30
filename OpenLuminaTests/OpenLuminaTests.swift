@@ -83,6 +83,31 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedImage?.id, firstID)
     }
 
+    @MainActor
+    func testClosingStudyCleansMountedWorkspace() async throws {
+        let root = try makeFixtureRoot(named: "Mounted Cleanup")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Mounted Cleanup")
+
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: nil, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: root),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            )
+        )
+
+        let loaded = await viewModel.loadStudy(from: .iso(URL(fileURLWithPath: "/tmp/mock.iso")))
+        XCTAssertTrue(loaded)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: root.path))
+
+        viewModel.closeStudy()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.path))
+        XCTAssertNil(viewModel.catalog)
+        XCTAssertNil(viewModel.selectedImage)
+    }
+
     func testUnsupportedStudyProducesError() throws {
         let root = try makeFixtureRoot()
         try "not a dicom file".data(using: .utf8)?.write(to: root.appendingPathComponent("plain.txt"))
