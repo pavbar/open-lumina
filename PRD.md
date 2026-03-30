@@ -3,13 +3,13 @@
 This is a living document. Update it in place as scope, decisions, and progress evolve.
 
 ## 1. Project Idea
-Open Lumina is a straightforward native macOS viewer for X-ray studies distributed as disc images or normal local folders. It exists to reduce friction when opening archived study media and to provide a clean UI for browsing the contained images without requiring a heavyweight clinical workstation.
+Open Lumina is a straightforward native Apple-platform viewer for X-ray studies distributed as disc images or normal local folders. It exists to reduce friction when opening archived study media and to provide a clean UI for browsing the contained images without requiring a heavyweight clinical workstation.
 
 ## 2. Product Goals
 - Open local ISO files and local folders with minimal setup.
 - Discover study contents with minimal user friction.
 - Provide a clean native UI for browsing X-ray images.
-- Keep the architecture compatible with future iOS expansion where it makes sense.
+- Maintain feature parity across macOS and iOS for all supported user-facing capabilities unless a platform restriction is documented explicitly.
 
 ## 3. Non-Goals (Current Scope)
 - Direct optical-drive support in v1.
@@ -30,18 +30,20 @@ Open Lumina is a straightforward native macOS viewer for X-ray studies distribut
 
 ## 5. Current Capabilities
 - The repository is initialized locally and not connected to GitHub publishing yet.
-- The repository contains the first native macOS app implementation.
+- The repository contains the first native macOS app implementation and is being shaped for future iOS feature parity.
 - The app can open local study folders and local ISO images.
 - The app can discover studies via `DICOMDIR` first and fall back to scanning DICOM files when needed.
 - The app can render a narrow first-build subset of grayscale DICOM X-ray images.
 - Synthetic unit tests cover parsing, rendering, cleanup, and view-model navigation.
 
 ## 6. Durable Decisions
-- Open Lumina is macOS-first for v1.
+- Open Lumina is shipping on macOS first, but every new feature must be designed for eventual iOS parity.
 - The initial UI direction is SwiftUI-first.
 - v1 is X-ray-first rather than a general medical imaging platform.
 - The first supported user inputs are local ISO files and local folders.
-- Future iOS support is desirable, but it is not binding on v1.
+- Shared domain, parsing, rendering, and state logic should stay platform-neutral wherever possible; platform-specific code belongs at file access, app shell, and presentation boundaries.
+- Exact UI parity is not required, but functional parity is the default expectation across macOS and iOS.
+- Any feature that cannot reach parity because of platform restrictions must document the exception explicitly in this PRD.
 - The repository should remain public-GitHub safe from day one.
 - The product should stay compatible with future Mac App Store distribution.
 - Default privacy posture is local-only and session-scoped. Opened studies, extracted ISO contents, and identifying metadata are not stored durably by default.

@@ -10,3 +10,6 @@
 - Added DICOMDIR-first study discovery, loose DICOM fallback scanning, and basic grayscale DICOM image rendering.
 - Added synthetic unit tests and UI smoke tests, plus repo-local rules that require tests for behavior-changing work when feasible.
 - Added repository hygiene files for local build artifact ignores.
+- Added session-only diagnostics with explicit export from app Settings and privacy-safe redaction of path-like values.
+- Updated product docs to make functional parity across macOS and iOS a durable requirement.
+- Refactored shared image rendering boundaries to use `CGImage` instead of `NSImage` so shared logic stays Apple-platform neutral.

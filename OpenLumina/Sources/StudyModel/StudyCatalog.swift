@@ -1,4 +1,4 @@
-import AppKit
+import CoreGraphics
 import Foundation
 
 struct StudyCatalog: Equatable {
@@ -31,5 +31,5 @@ protocol StudyCatalogParsing {
 
 protocol StudyLoading {
     func loadStudy(from input: StudyInput) throws -> StudySession
-    func renderImage(at url: URL) throws -> NSImage
+    func renderImage(at url: URL) throws -> CGImage
 }

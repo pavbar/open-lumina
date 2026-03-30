@@ -1,4 +1,4 @@
-import AppKit
+import CoreGraphics
 import Foundation
 
 struct StudyLoader: StudyLoading {
@@ -21,7 +21,7 @@ struct StudyLoader: StudyLoading {
         }
     }
 
-    func renderImage(at url: URL) throws -> NSImage {
+    func renderImage(at url: URL) throws -> CGImage {
         try renderer.renderImage(at: url)
     }
 }

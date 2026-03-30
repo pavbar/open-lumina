@@ -34,7 +34,8 @@ If two instructions conflict, follow the higher priority one and state the confl
 - Prefer native Apple-stack work. Do not default to Electron, web-first, or cross-platform shell approaches unless the user explicitly changes direction.
 - Keep SwiftUI as the default UI direction unless a concrete constraint requires otherwise.
 - Keep v1 focused on opening local ISO files and local folders for X-ray viewing.
-- Treat future iOS support as a design constraint for clean boundaries, not as a reason to widen scope prematurely.
+- Treat feature parity across macOS and iOS as a binding product requirement for new user-facing capabilities unless a platform restriction is documented explicitly.
+- Keep shared domain, rendering, and state layers free of platform-specific UI types when a platform-neutral Apple type is available.
 
 ## Privacy and sample data
 - Treat this as a public-facing OSS repository from day one.

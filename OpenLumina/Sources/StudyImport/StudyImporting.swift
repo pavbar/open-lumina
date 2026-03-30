@@ -3,6 +3,15 @@ import Foundation
 enum StudyInput: Equatable {
     case folder(URL)
     case iso(URL)
+
+    var diagnosticLabel: String {
+        switch self {
+        case .folder:
+            return "folder"
+        case .iso:
+            return "iso"
+        }
+    }
 }
 
 enum StudySource: Equatable {
@@ -52,14 +61,18 @@ enum StudyImportError: LocalizedError {
 }
 
 struct ISOStudyImporter: ISOImporting {
+    let diagnosticsStore: DiagnosticLogStore
+
     func mountISO(at url: URL) throws -> DisposableStudyMount {
         guard url.pathExtension.lowercased() == "iso" else {
+            diagnosticsStore.record("iso_mount_rejected", details: ["reason": "invalid_extension"])
             throw StudyImportError.invalidISO(url)
         }
 
         let mountURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("open-lumina-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: mountURL, withIntermediateDirectories: true)
+        diagnosticsStore.record("iso_mount_started")
 
         let attachResult = Shell.run(
             "/usr/bin/hdiutil",
@@ -75,16 +88,28 @@ struct ISOStudyImporter: ISOImporting {
 
         guard attachResult.exitCode == 0 else {
             try? FileManager.default.removeItem(at: mountURL)
+            diagnosticsStore.record(
+                "iso_mount_failed",
+                details: ["reason": attachResult.diagnosticReason]
+            )
             throw StudyImportError.mountFailed(attachResult.stderr.isEmpty ? attachResult.stdout : attachResult.stderr)
         }
 
+        diagnosticsStore.record("iso_mount_succeeded")
+
         return DisposableStudyMount(rootURL: mountURL) {
+            diagnosticsStore.record("iso_detach_started")
             let detachResult = Shell.run(
                 "/usr/bin/hdiutil",
                 arguments: ["detach", mountURL.path]
             )
             if detachResult.exitCode != 0 {
-                _ = detachResult
+                diagnosticsStore.record(
+                    "iso_detach_failed",
+                    details: ["reason": detachResult.diagnosticReason]
+                )
+            } else {
+                diagnosticsStore.record("iso_detach_succeeded")
             }
             try? FileManager.default.removeItem(at: mountURL)
         }
@@ -134,5 +159,26 @@ enum Shell {
             stdout: String(decoding: stdoutData, as: UTF8.self),
             stderr: String(decoding: stderrData, as: UTF8.self)
         )
+    }
+}
+
+private extension ShellResult {
+    var diagnosticReason: String {
+        let output = (stderr.isEmpty ? stdout : stderr).lowercased()
+
+        if output.contains("resource busy") {
+            return "resource_busy"
+        }
+        if output.contains("no such file") {
+            return "file_missing"
+        }
+        if output.contains("not permitted") || output.contains("permission") {
+            return "permission_denied"
+        }
+        if output.contains("timed out") {
+            return "timeout"
+        }
+
+        return exitCode == 0 ? "ok" : "command_failed_\(exitCode)"
     }
 }

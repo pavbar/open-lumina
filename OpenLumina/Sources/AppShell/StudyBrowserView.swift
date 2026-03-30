@@ -1,3 +1,4 @@
+import CoreGraphics
 import SwiftUI
 
 struct StudyBrowserView: View {
@@ -6,12 +7,14 @@ struct StudyBrowserView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
+                .navigationSplitViewColumnWidth(min: 280, ideal: 310, max: 340)
         } content: {
             imageColumn
+                .navigationSplitViewColumnWidth(min: 330, ideal: 380, max: 430)
         } detail: {
             viewerDetail
         }
-        .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 360)
+        .navigationSplitViewStyle(.balanced)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button("Open Folder") {
@@ -48,75 +51,77 @@ struct StudyBrowserView: View {
         } message: {
             Text(viewModel.errorMessage ?? "Unknown error")
         }
-        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     private var sidebar: some View {
-        Group {
+        ZStack {
+            Color(nsColor: .windowBackgroundColor)
+                .ignoresSafeArea()
+
             if let catalog = viewModel.catalog {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        studySummaryCard(catalog: catalog)
-                        seriesRail(catalog: catalog)
+                    VStack(alignment: .leading, spacing: 18) {
+                        studyHeader(catalog: catalog)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Series")
+                                .font(.headline)
+                            ForEach(catalog.series) { series in
+                                seriesRow(series: series, isSelected: series.id == viewModel.selectedSeriesID)
+                            }
+                        }
+                        .accessibilityIdentifier("series-list")
                     }
-                    .padding(20)
+                    .padding(18)
                 }
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color(nsColor: .windowBackgroundColor),
-                            Color.accentColor.opacity(0.06)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
             } else {
-                emptyColumn(
+                emptyState(
                     title: "No study open",
-                    subtitle: "Open a local folder or ISO file to start reviewing X-ray studies.",
+                    subtitle: "Open a local folder or ISO file to browse X-ray studies.",
                     systemImage: "square.stack.3d.up"
                 )
+                .padding(20)
             }
         }
     }
 
     private var imageColumn: some View {
-        Group {
+        ZStack {
+            Color(nsColor: .controlBackgroundColor)
+                .ignoresSafeArea()
+
             if let series = viewModel.selectedSeries {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        sectionHeader(
-                            eyebrow: "Series",
-                            title: series.title,
-                            subtitle: series.subtitle
-                        )
+                    VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Series")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                            Text(series.title)
+                                .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                .lineLimit(2)
+                            Text(series.subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
 
-                        LazyVStack(alignment: .leading, spacing: 12) {
+                        LazyVStack(alignment: .leading, spacing: 10) {
                             ForEach(series.images) { image in
                                 imageRow(image: image, isSelected: image.id == viewModel.selectedImageID)
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(18)
                 }
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color(nsColor: .controlBackgroundColor),
-                            Color(nsColor: .windowBackgroundColor)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
                 .accessibilityIdentifier("image-list")
             } else {
-                emptyColumn(
+                emptyState(
                     title: "Choose a series",
-                    subtitle: "Series stay on the left. Images appear here once you pick one.",
+                    subtitle: "Pick a series on the left to see its images here.",
                     systemImage: "square.grid.2x2"
                 )
+                .padding(20)
             }
         }
     }
@@ -125,8 +130,8 @@ struct StudyBrowserView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.12, green: 0.14, blue: 0.17),
-                    Color.black
+                    Color(red: 0.11, green: 0.12, blue: 0.15),
+                    Color(red: 0.03, green: 0.03, blue: 0.04)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -139,33 +144,24 @@ struct StudyBrowserView: View {
 
                     GeometryReader { geometry in
                         ZStack {
-                            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(0.04),
-                                            Color.white.opacity(0.01)
-                                        ],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
+                            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                .fill(Color.white.opacity(0.035))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
                                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
                                 )
 
                             ScrollView([.horizontal, .vertical]) {
-                                Image(nsImage: image)
+                                Image(decorative: image, scale: 1.0)
                                     .resizable()
                                     .interpolation(.none)
                                     .scaledToFit()
                                     .frame(
-                                        width: geometry.size.width * 0.86 * viewModel.zoomScale,
+                                        width: geometry.size.width * 0.84 * viewModel.zoomScale,
                                         height: geometry.size.height * 0.88 * viewModel.zoomScale
                                     )
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .padding(36)
+                                    .padding(32)
                                     .accessibilityIdentifier("dicom-image-view")
                             }
                         }
@@ -173,96 +169,71 @@ struct StudyBrowserView: View {
 
                     viewerFooter
                 }
-                .padding(24)
+                .padding(22)
             } else {
                 emptyViewerState
-                    .padding(24)
+                    .padding(22)
             }
         }
     }
 
-    private func studySummaryCard(catalog: StudyCatalog) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Study")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-
+    private func studyHeader(catalog: StudyCatalog) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             Text(catalog.displayName)
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
+                .font(.system(size: 25, weight: .semibold, design: .rounded))
                 .lineLimit(2)
                 .accessibilityIdentifier("study-title")
 
             Text(catalog.subtitle)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .lineLimit(2)
 
-            Divider()
-
-            HStack(spacing: 10) {
-                statChip(value: "\(catalog.series.count)", label: "Series")
-                statChip(value: "\(catalog.imageCount)", label: "Images")
+            HStack(spacing: 12) {
+                Label("\(catalog.series.count) series", systemImage: "square.stack.3d.down.right")
+                Label("\(catalog.imageCount) images", systemImage: "photo.on.rectangle")
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
-        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.thinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                )
-        )
-    }
-
-    private func seriesRail(catalog: StudyCatalog) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Series")
-                .font(.headline)
-
-            LazyVStack(alignment: .leading, spacing: 10) {
-                ForEach(catalog.series) { series in
-                    seriesRow(series: series, isSelected: series.id == viewModel.selectedSeriesID)
-                }
-            }
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color(nsColor: .controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.black.opacity(0.04), lineWidth: 1)
-                )
         )
-        .accessibilityIdentifier("series-list")
     }
 
     private func seriesRow(series: StudySeries, isSelected: Bool) -> some View {
         Button {
             viewModel.selectSeries(series.id)
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
+            HStack(spacing: 12) {
+                previewTile(image: viewModel.previewImage(forSeriesID: series.id), placeholder: "square.stack.3d.down.right")
+                    .frame(width: 70, height: 70)
+
+                VStack(alignment: .leading, spacing: 4) {
                     Text(series.title)
                         .font(.headline)
-                        .foregroundStyle(Color.primary)
-                    Spacer(minLength: 8)
-                    if isSelected {
-                        Image(systemName: "arrow.right.circle.fill")
-                            .foregroundStyle(Color.accentColor)
-                    }
-                }
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
 
-                Text(series.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(Color.secondary)
+                    Text(series.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.accentColor)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
+            .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(isSelected ? Color.accentColor.opacity(0.14) : Color.white.opacity(0.6))
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.white.opacity(0.7))
             )
         }
         .buttonStyle(.plain)
@@ -273,27 +244,22 @@ struct StudyBrowserView: View {
         Button {
             viewModel.selectImage(image.id)
         } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(isSelected ? Color.accentColor : Color.black.opacity(0.75))
-                    Image(systemName: "photo")
-                        .foregroundStyle(.white)
-                        .font(.system(size: 16, weight: .medium))
-                }
-                .frame(width: 46, height: 46)
+            HStack(spacing: 12) {
+                previewTile(image: viewModel.previewImage(forImageID: image.id), placeholder: "photo")
+                    .frame(width: 78, height: 78)
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(image.displayName)
                         .font(.headline)
                         .foregroundStyle(.primary)
+                        .lineLimit(1)
+
                     Text(image.subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-
-                Spacer(minLength: 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if isSelected {
                     Text("Active")
@@ -307,15 +273,38 @@ struct StudyBrowserView: View {
                         )
                 }
             }
-            .padding(16)
+            .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(isSelected ? Color.white : Color.white.opacity(0.78))
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(isSelected ? Color.white : Color.white.opacity(0.74))
                     .shadow(color: .black.opacity(isSelected ? 0.08 : 0.03), radius: isSelected ? 10 : 4, y: 4)
             )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("image-\(image.id)")
+    }
+
+    private func previewTile(image: CGImage?, placeholder: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.black.opacity(0.85))
+
+            if let image {
+                Image(decorative: image, scale: 1.0)
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
+            } else {
+                Image(systemName: placeholder)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.75))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private var viewerHeader: some View {
@@ -420,62 +409,19 @@ struct StudyBrowserView: View {
         )
     }
 
-    private func sectionHeader(eyebrow: String, title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(eyebrow)
-                .font(.caption.weight(.semibold))
+    private func emptyState(title: String, subtitle: String, systemImage: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: systemImage)
+                .font(.system(size: 34, weight: .medium))
                 .foregroundStyle(.secondary)
-                .textCase(.uppercase)
             Text(title)
-                .font(.system(size: 26, weight: .semibold, design: .rounded))
+                .font(.system(size: 24, weight: .semibold, design: .rounded))
             Text(subtitle)
-                .font(.subheadline)
+                .font(.body)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 320)
         }
-    }
-
-    private func statChip(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.title3.weight(.semibold))
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.accentColor.opacity(0.12))
-        )
-    }
-
-    private func emptyColumn(title: String, subtitle: String, systemImage: String) -> some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color.accentColor.opacity(0.08)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            VStack(spacing: 16) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 34, weight: .medium))
-                    .foregroundStyle(.secondary)
-                Text(title)
-                    .font(.system(size: 24, weight: .semibold, design: .rounded))
-                Text(subtitle)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 320)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(20)
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

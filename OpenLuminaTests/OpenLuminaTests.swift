@@ -59,8 +59,8 @@ final class OpenLuminaTests: XCTestCase {
         let imageURL = root.appendingPathComponent("SERIES1/IMAGE0001")
 
         let image = try DICOMImageRenderer().renderImage(at: imageURL)
-        XCTAssertEqual(image.size.width, 16)
-        XCTAssertEqual(image.size.height, 16)
+        XCTAssertEqual(image.width, 16)
+        XCTAssertEqual(image.height, 16)
     }
 
     @MainActor
@@ -108,6 +108,38 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertNil(viewModel.selectedImage)
     }
 
+    @MainActor
+    func testLoadingStudyGeneratesPreviewImages() async throws {
+        let root = try makeFixtureRoot(named: "Preview Fixture")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Preview Fixture")
+
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: root, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: root),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            )
+        )
+
+        let loaded = await viewModel.loadStudy(from: .folder(root))
+        XCTAssertTrue(loaded)
+
+        let seriesID = try XCTUnwrap(viewModel.selectedSeries?.id)
+        let imageID = try XCTUnwrap(viewModel.selectedImage?.id)
+
+        let deadline = Date().addingTimeInterval(2.0)
+        while Date() < deadline {
+            if viewModel.previewImage(forSeriesID: seriesID) != nil,
+               viewModel.previewImage(forImageID: imageID) != nil {
+                return
+            }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+
+        XCTFail("Expected preview images to be generated asynchronously.")
+    }
+
     func testUnsupportedStudyProducesError() throws {
         let root = try makeFixtureRoot()
         try "not a dicom file".data(using: .utf8)?.write(to: root.appendingPathComponent("plain.txt"))
@@ -126,6 +158,25 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertFalse(text.contains("token"))
         XCTAssertFalse(text.contains("secret"))
         XCTAssertFalse(text.contains("patient"))
+    }
+
+    @MainActor
+    func testDiagnosticExportRedactsPaths() {
+        let store = DiagnosticLogStore(now: { Date(timeIntervalSince1970: 0) })
+        store.record(
+            "iso_mount_failed",
+            details: [
+                "reason": "resource_busy",
+                "path": "/redacted/example-study.iso"
+            ]
+        )
+
+        let export = store.exportText()
+
+        XCTAssertTrue(export.contains("iso_mount_failed"))
+        XCTAssertTrue(export.contains("reason=resource_busy"))
+        XCTAssertTrue(export.contains("path=redacted-path"))
+        XCTAssertFalse(export.contains("/Users/redacted-user"))
     }
 
     private func makeFixtureRoot(named name: String = UUID().uuidString) throws -> URL {

@@ -1,15 +1,14 @@
-import AppKit
 import CoreGraphics
 import Foundation
 
 protocol ImageRendering {
-    func renderImage(at url: URL) throws -> NSImage
+    func renderImage(at url: URL) throws -> CGImage
 }
 
 struct DICOMImageRenderer: ImageRendering {
     private let parser = DICOMParser()
 
-    func renderImage(at url: URL) throws -> NSImage {
+    func renderImage(at url: URL) throws -> CGImage {
         let dataSet = try parser.parseFile(at: url)
 
         guard
@@ -72,7 +71,7 @@ struct DICOMImageRenderer: ImageRendering {
             throw StudyCatalogError.unsupportedImage("Unable to construct a renderable image.")
         }
 
-        return NSImage(cgImage: cgImage, size: NSSize(width: Int(columns), height: Int(rows)))
+        return cgImage
     }
 
     private func normalizePixelData(
