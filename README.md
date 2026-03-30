@@ -38,8 +38,9 @@ macOS ships first, but the repository now treats feature parity across macOS and
 ## CI and Downloads
 
 - GitHub Actions now runs package tests and a native macOS build on pushes to `main` and on pull requests.
-- Tagged releases and manual release runs package `OpenLumina.app` into a downloadable ZIP artifact.
-- Current release artifacts are unsigned. They are useful for OSS distribution and testing, but they are not the same as a polished public install path.
+- Tagged releases on `main` publish `OpenLumina.app` as a ZIP asset on the repository Releases page.
+- Manually triggered release workflows upload the ZIP only as an artifact on that specific Actions run page.
+- All current downloadable artifacts are unsigned. They are useful for OSS distribution and testing, but they are not the same as a polished public install path.
 - Smooth public installation on macOS still requires Apple Developer ID signing and notarization.
 
 ## Layout
