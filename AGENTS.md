@@ -34,12 +34,15 @@ If two instructions conflict, follow the higher priority one and state the confl
 - Prefer native Apple-stack work. Do not default to Electron, web-first, or cross-platform shell approaches unless the user explicitly changes direction.
 - Keep SwiftUI as the default UI direction unless a concrete constraint requires otherwise.
 - Keep v1 focused on opening local ISO files and local folders for X-ray viewing.
-- Treat future iOS support as a design constraint for clean boundaries, not as a reason to widen scope prematurely.
+- Treat feature parity across macOS and iOS as a binding product requirement for new user-facing capabilities unless a platform restriction is documented explicitly.
+- Keep shared domain, rendering, and state layers free of platform-specific UI types when a platform-neutral Apple type is available.
 
 ## Privacy and sample data
 - Treat this as a public-facing OSS repository from day one.
 - Never commit real patient data, real medical images, identifying study metadata, or private infrastructure details.
 - Use only synthetic, de-identified, or explicitly safe sample data in docs, tests, and fixtures.
+- Default to session-scoped handling for user-selected studies. Do not persist opened studies, extracted ISO contents, or identifying metadata unless the user explicitly asks for durable storage and the change is documented.
+- Keep logs minimal. Do not log file contents, patient-like metadata, or full study inventories.
 
 ## Change policy
 - Prefer small, reversible changes.
@@ -49,7 +52,9 @@ If two instructions conflict, follow the higher priority one and state the confl
 ## Verification
 - Run the smallest relevant verification for the change.
 - For documentation-only changes, verify structure, links, and declared canonical paths.
+- Behavior-changing code must add or update tests when feasible.
+- Prefer unit tests for parsing, state, and privacy-sensitive logic, and UI tests for critical open and navigation flows.
+- If a change cannot be covered by tests, state the exact gap and why.
 
 ## What not to do
-- Do not add app implementation code until the project moves beyond the current docs-only stage.
 - Do not wire up GitHub remotes, CI, or release automation unless explicitly asked.
