@@ -35,6 +35,13 @@ macOS ships first, but the repository now treats feature parity across macOS and
 - Fast local build and unit tests: `swift test`
 - Native build: `xcodebuild -project OpenLumina.xcodeproj -scheme OpenLumina -configuration Debug -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build`
 
+## CI and Downloads
+
+- GitHub Actions now runs package tests and a native macOS build on pushes to `main` and on pull requests.
+- Tagged releases and manual release runs package `OpenLumina.app` into a downloadable ZIP artifact.
+- Current release artifacts are unsigned. They are useful for OSS distribution and testing, but they are not the same as a polished public install path.
+- Smooth public installation on macOS still requires Apple Developer ID signing and notarization.
+
 ## Layout
 
 See [INDEX.md](INDEX.md) for the canonical repository map.

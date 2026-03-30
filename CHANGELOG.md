@@ -14,3 +14,4 @@
 - Updated product docs to make functional parity across macOS and iOS a durable requirement.
 - Refactored shared image rendering boundaries to use `CGImage` instead of `NSImage` so shared logic stays Apple-platform neutral.
 - Added an Apache 2.0 `LICENSE` file and linked it from repo docs.
+- Added GitHub Actions workflows for CI validation and downloadable unsigned macOS release packaging.
