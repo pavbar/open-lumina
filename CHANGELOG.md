@@ -13,3 +13,4 @@
 - Added session-only diagnostics with explicit export from app Settings and privacy-safe redaction of path-like values.
 - Updated product docs to make functional parity across macOS and iOS a durable requirement.
 - Refactored shared image rendering boundaries to use `CGImage` instead of `NSImage` so shared logic stays Apple-platform neutral.
+- Added an Apache 2.0 `LICENSE` file and linked it from repo docs.

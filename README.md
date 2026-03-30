@@ -38,3 +38,7 @@ macOS ships first, but the repository now treats feature parity across macOS and
 ## Layout
 
 See [INDEX.md](INDEX.md) for the canonical repository map.
+
+## License
+
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE).

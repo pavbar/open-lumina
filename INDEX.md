@@ -5,6 +5,7 @@
 - [PRD.md](PRD.md) - durable product context and decisions
 - [CHANGELOG.md](CHANGELOG.md) - chronological repository history
 - [AGENTS.md](AGENTS.md) - repo-scoped instructions for agents
+- [LICENSE](LICENSE) - Apache License 2.0 terms for the repository
 - [Package.swift](Package.swift) - SwiftPM manifest for fast local builds and unit tests
 
 ## App code
