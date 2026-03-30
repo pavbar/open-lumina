@@ -30,8 +30,11 @@ Open Lumina is a straightforward native macOS viewer for X-ray studies distribut
 
 ## 5. Current Capabilities
 - The repository is initialized locally and not connected to GitHub publishing yet.
-- The repository currently contains documentation and scaffolding only.
-- Application implementation has not started yet.
+- The repository contains the first native macOS app implementation.
+- The app can open local study folders and local ISO images.
+- The app can discover studies via `DICOMDIR` first and fall back to scanning DICOM files when needed.
+- The app can render a narrow first-build subset of grayscale DICOM X-ray images.
+- Synthetic unit tests cover parsing, rendering, cleanup, and view-model navigation.
 
 ## 6. Durable Decisions
 - Open Lumina is macOS-first for v1.
@@ -39,3 +42,8 @@ Open Lumina is a straightforward native macOS viewer for X-ray studies distribut
 - v1 is X-ray-first rather than a general medical imaging platform.
 - The first supported user inputs are local ISO files and local folders.
 - Future iOS support is desirable, but it is not binding on v1.
+- The repository should remain public-GitHub safe from day one.
+- The product should stay compatible with future Mac App Store distribution.
+- Default privacy posture is local-only and session-scoped. Opened studies, extracted ISO contents, and identifying metadata are not stored durably by default.
+- v1 should prefer Apple frameworks and avoid third-party telemetry, cloud dependencies, and secret-bearing configuration.
+- The first study-discovery contract is `DICOMDIR` first with loose DICOM fallback.

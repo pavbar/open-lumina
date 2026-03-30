@@ -5,3 +5,8 @@
 - Added initial project documentation: `README.md`, `PRD.md`, `AGENTS.md`, and `INDEX.md`.
 - Added file-based operational docs under `docs/`.
 - Switched task management guidance from local file-based tracking to Taiga `pb-main-kanban`.
+- Added the first native macOS viewer build under `OpenLumina.xcodeproj` and `OpenLumina/`.
+- Implemented local folder and ISO study opening with privacy-first temporary ISO mounting and cleanup.
+- Added DICOMDIR-first study discovery, loose DICOM fallback scanning, and basic grayscale DICOM image rendering.
+- Added synthetic unit tests and UI smoke tests, plus repo-local rules that require tests for behavior-changing work when feasible.
+- Added repository hygiene files for local build artifact ignores.
