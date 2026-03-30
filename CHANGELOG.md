@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2026-03-30
-- Set the app bundle version to `0.1.0` with build number `1` for the first public OSS release.
+- Set the marketing version (`CFBundleShortVersionString`) to `0.1.0` and kept the build number (`CFBundleVersion`) at `1` for the first public OSS release.
 - Initialized the local `open-lumina` repository.
 - Added initial project documentation: `README.md`, `PRD.md`, `AGENTS.md`, and `INDEX.md`.
 - Added file-based operational docs under `docs/`.
