@@ -19,7 +19,9 @@ final class OpenLuminaUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["FolderStudy"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["next-image-button"].exists)
-        XCTAssertTrue(app.buttons["export-image-button"].isEnabled)
+        let exportButton = app.buttons["export-image-button"]
+        XCTAssertTrue(exportButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(exportButton.isEnabled)
         app.buttons["next-image-button"].click()
         XCTAssertTrue(app.otherElements["dicom-image-view"].exists)
     }

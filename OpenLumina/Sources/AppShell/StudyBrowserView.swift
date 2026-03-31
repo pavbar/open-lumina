@@ -44,34 +44,30 @@ struct StudyBrowserView: View {
                 .accessibilityIdentifier("export-image-button")
             }
         }
-        .alert("Unable to Open Study", isPresented: Binding(
-            get: { viewModel.errorMessage != nil },
+        .alert(activeAlertTitle, isPresented: Binding(
+            get: { activeAlertMessage != nil },
             set: { newValue in
                 if !newValue {
                     viewModel.errorMessage = nil
-                }
-            }
-        )) {
-            Button("OK", role: .cancel) {
-                viewModel.errorMessage = nil
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "Unknown error")
-        }
-        .alert("Unable to Export Image", isPresented: Binding(
-            get: { viewModel.exportErrorMessage != nil },
-            set: { newValue in
-                if !newValue {
                     viewModel.exportErrorMessage = nil
                 }
             }
         )) {
             Button("OK", role: .cancel) {
+                viewModel.errorMessage = nil
                 viewModel.exportErrorMessage = nil
             }
         } message: {
-            Text(viewModel.exportErrorMessage ?? "Unknown error")
+            Text(activeAlertMessage ?? "Unknown error")
         }
+    }
+
+    private var activeAlertTitle: String {
+        viewModel.exportErrorMessage != nil ? "Unable to Export Image" : "Unable to Open Study"
+    }
+
+    private var activeAlertMessage: String? {
+        viewModel.exportErrorMessage ?? viewModel.errorMessage
     }
 
     private var sidebar: some View {
@@ -455,12 +451,6 @@ struct StudyBrowserView: View {
     }
 
     private func exportSelectedImage() {
-        do {
-            try viewModel.exportSelectedImage()
-        } catch {
-            if case ImageExportError.noRenderableImage = error {
-                viewModel.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            }
-        }
+        _ = try? viewModel.exportSelectedImage()
     }
 }

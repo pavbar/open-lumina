@@ -125,11 +125,12 @@ final class AppViewModel: ObservableObject {
 
     @discardableResult
     func exportSelectedImage() throws -> URL? {
-        guard let renderedImage, let selectedImage else {
-            throw ImageExportError.noRenderableImage
-        }
+        exportErrorMessage = nil
 
         do {
+            guard let renderedImage, let selectedImage else {
+                throw ImageExportError.noRenderableImage
+            }
             let url = try imageExportService.exportImage(renderedImage, suggestedName: selectedImage.displayName)
             if let url {
                 exportErrorMessage = nil
@@ -141,6 +142,7 @@ final class AppViewModel: ObservableObject {
                     ]
                 )
             } else {
+                exportErrorMessage = nil
                 statusMessage = "Export cancelled."
             }
             return url

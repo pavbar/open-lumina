@@ -244,6 +244,34 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertThrowsError(try viewModel.exportSelectedImage()) { error in
             XCTAssertEqual(error as? ImageExportError, .noRenderableImage)
         }
+        XCTAssertEqual(viewModel.exportErrorMessage, "Select a renderable image before exporting.")
+    }
+
+    @MainActor
+    func testExportCancelClearsStaleExportErrorMessage() async throws {
+        let root = try makeFixtureRoot(named: "Export Cancel")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Export Cancel")
+        let exportService = StubImageExportService()
+        exportService.nextResult = URL(fileURLWithPath: "/tmp/sample.png")
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: root, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: root),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            ),
+            imageExportService: exportService
+        )
+
+        let loaded = await viewModel.loadStudy(from: .folder(root))
+        XCTAssertTrue(loaded)
+
+        viewModel.exportErrorMessage = "stale"
+        exportService.nextResult = nil
+
+        let url = try viewModel.exportSelectedImage()
+        XCTAssertNil(url)
+        XCTAssertNil(viewModel.exportErrorMessage)
     }
 
     @MainActor

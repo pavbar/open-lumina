@@ -121,13 +121,7 @@ private struct DiagnosticsSettingsView: View {
 
 private extension OpenLuminaApp {
     func exportSelectedImage() {
-        do {
-            try viewModel.exportSelectedImage()
-        } catch {
-            if case ImageExportError.noRenderableImage = error {
-                viewModel.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            }
-        }
+        _ = try? viewModel.exportSelectedImage()
     }
 }
 
