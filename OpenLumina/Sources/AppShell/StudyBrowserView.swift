@@ -35,6 +35,13 @@ struct StudyBrowserView: View {
                 .buttonStyle(.bordered)
                 .disabled(!viewModel.hasOpenStudy)
                 .accessibilityIdentifier("close-study-button")
+
+                Button("Export Image") {
+                    exportSelectedImage()
+                }
+                .buttonStyle(.bordered)
+                .disabled(!viewModel.canExportSelectedImage)
+                .accessibilityIdentifier("export-image-button")
             }
         }
         .alert("Unable to Open Study", isPresented: Binding(
@@ -329,6 +336,14 @@ struct StudyBrowserView: View {
             Spacer()
 
             HStack(spacing: 10) {
+                Button("Export") {
+                    exportSelectedImage()
+                }
+                .buttonStyle(.bordered)
+                .tint(.white)
+                .disabled(!viewModel.canExportSelectedImage)
+                .accessibilityIdentifier("viewer-export-button")
+
                 Button("Previous") {
                     viewModel.selectPreviousImage()
                 }
@@ -423,5 +438,13 @@ struct StudyBrowserView: View {
                 .frame(maxWidth: 320)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func exportSelectedImage() {
+        do {
+            try viewModel.exportSelectedImage()
+        } catch {
+            viewModel.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
     }
 }

@@ -14,6 +14,12 @@ struct OpenLuminaApp: App {
                 }
         }
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About Open Lumina") {
+                    AboutWindowController.shared.showWindow()
+                }
+            }
+
             CommandGroup(after: .newItem) {
                 Button("Open Folder...") {
                     viewModel.openFolder()
@@ -31,6 +37,14 @@ struct OpenLuminaApp: App {
                     viewModel.closeStudy()
                 }
                 .disabled(!viewModel.hasOpenStudy)
+
+                Divider()
+
+                Button("Export Image…") {
+                    exportSelectedImage()
+                }
+                .keyboardShortcut("e")
+                .disabled(!viewModel.canExportSelectedImage)
             }
 
             CommandMenu("View") {
@@ -79,7 +93,7 @@ private struct DiagnosticsSettingsView: View {
             Button("Export Session Logs…") {
                 exportDiagnostics()
             }
-            .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent)
 
             Text(exportStatus)
                 .font(.caption)
@@ -102,5 +116,47 @@ private struct DiagnosticsSettingsView: View {
         } catch {
             exportStatus = "Export failed: \(error.localizedDescription)"
         }
+    }
+}
+
+private extension OpenLuminaApp {
+    func exportSelectedImage() {
+        do {
+            try viewModel.exportSelectedImage()
+        } catch {
+            viewModel.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+}
+
+@MainActor
+private final class AboutWindowController: NSObject, NSWindowDelegate {
+    static let shared = AboutWindowController()
+
+    private var window: NSWindow?
+
+    func showWindow() {
+        if let window {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let contentView = AboutView(metadata: AboutAppMetadata.current())
+        let hostingController = NSHostingController(rootView: contentView)
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "About Open Lumina"
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.isReleasedWhenClosed = false
+        window.level = .floating
+        window.center()
+        window.setContentSize(NSSize(width: 420, height: 240))
+        window.delegate = self
+        self.window = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    @objc func windowWillClose(_ notification: Notification) {
+        window = nil
     }
 }

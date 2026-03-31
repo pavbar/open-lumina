@@ -19,16 +19,19 @@ final class AppViewModel: ObservableObject {
     let diagnosticsStore: DiagnosticLogStore
     private let openPanelService: OpenPanelServicing
     private let studyLoader: StudyLoading
+    private let imageExportService: ImageExporting
     private var activeSession: StudySession?
     private var previewGenerationToken = UUID()
 
     init(
         openPanelService: OpenPanelServicing,
         studyLoader: StudyLoading,
+        imageExportService: ImageExporting,
         diagnosticsStore: DiagnosticLogStore = DiagnosticLogStore()
     ) {
         self.openPanelService = openPanelService
         self.studyLoader = studyLoader
+        self.imageExportService = imageExportService
         self.diagnosticsStore = diagnosticsStore
     }
 
@@ -37,12 +40,14 @@ final class AppViewModel: ObservableObject {
         return AppViewModel(
             openPanelService: services.openPanelService,
             studyLoader: services.studyLoader,
+            imageExportService: services.imageExportService,
             diagnosticsStore: services.diagnosticsStore
         )
     }
 
     var hasOpenStudy: Bool { catalog != nil }
     var hasRenderableImage: Bool { renderedImage != nil }
+    var canExportSelectedImage: Bool { renderedImage != nil && selectedImage != nil }
 
     func previewImage(forSeriesID seriesID: String) -> CGImage? {
         seriesPreviewImages[seriesID]
@@ -114,6 +119,28 @@ final class AppViewModel: ObservableObject {
         zoomScale = 1.0
         statusMessage = "Open a local study folder or ISO image to begin."
         errorMessage = nil
+    }
+
+    @discardableResult
+    func exportSelectedImage() throws -> URL? {
+        guard let renderedImage, let selectedImage else {
+            throw ImageExportError.noRenderableImage
+        }
+
+        let url = try imageExportService.exportImage(renderedImage, suggestedName: selectedImage.displayName)
+        if let url {
+            statusMessage = "Saved \(url.lastPathComponent)"
+            diagnosticsStore.record(
+                "image_export_succeeded",
+                details: [
+                    "format": url.pathExtension.lowercased(),
+                    "file": url.lastPathComponent
+                ]
+            )
+        } else {
+            statusMessage = "Export cancelled."
+        }
+        return url
     }
 
     func selectSeries(_ seriesID: String) {

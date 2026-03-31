@@ -16,3 +16,6 @@
 - Refactored shared image rendering boundaries to use `CGImage` instead of `NSImage` so shared logic stays Apple-platform neutral.
 - Added an Apache 2.0 `LICENSE` file and linked it from repo docs.
 - Added GitHub Actions workflows for CI validation and downloadable unsigned macOS release packaging.
+- Added a custom macOS About flow with bundle-driven version/build display and creator attribution for Pavlo Barzdun.
+- Added local-only PNG and JPEG export for the currently selected rendered image in the File menu and viewer UI.
+- Added export-focused test coverage for filename sanitization, encoder output, invalid destinations, no-image handling, and viewer export availability.
