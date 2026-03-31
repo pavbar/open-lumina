@@ -87,6 +87,11 @@ enum ImageExportNaming {
         directoryURL.appendingPathComponent(baseName).appendingPathExtension(format.fileExtension)
     }
 
+    static func normalizedDestinationURL(for url: URL, format: ImageExportFormat) -> URL {
+        let baseName = baseName(from: url.lastPathComponent)
+        return url.deletingLastPathComponent().appendingPathComponent(baseName).appendingPathExtension(format.fileExtension)
+    }
+
     static func filename(for fieldValue: String, format: ImageExportFormat) -> String {
         let baseName = baseName(from: fieldValue)
         return "\(baseName).\(format.fileExtension)"
@@ -146,7 +151,7 @@ struct ImageExportPanelService: ImageExportSelecting {
 
         let selectedIndex = max(0, picker.indexOfSelectedItem)
         let format = ImageExportFormat.allCases[selectedIndex]
-        return ImageExportSelection(destinationURL: url, format: format)
+        return ImageExportSelection(destinationURL: ImageExportNaming.normalizedDestinationURL(for: url, format: format), format: format)
     }
 }
 
