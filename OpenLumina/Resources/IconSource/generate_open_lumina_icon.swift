@@ -20,7 +20,12 @@ let slots: [IconSlot] = [
 ]
 
 let fileManager = FileManager.default
-let repoRoot = URL(fileURLWithPath: fileManager.currentDirectoryPath)
+let scriptURL = URL(fileURLWithPath: #filePath)
+let repoRoot = scriptURL
+    .deletingLastPathComponent() // generate_open_lumina_icon.swift
+    .deletingLastPathComponent() // IconSource
+    .deletingLastPathComponent() // Resources
+    .deletingLastPathComponent() // repo root
 let iconSetURL = repoRoot
     .appendingPathComponent("OpenLumina", isDirectory: true)
     .appendingPathComponent("Resources", isDirectory: true)
