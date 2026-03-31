@@ -86,6 +86,12 @@ enum ImageExportNaming {
     static func destinationURL(for directoryURL: URL, baseName: String, format: ImageExportFormat) -> URL {
         directoryURL.appendingPathComponent(baseName).appendingPathExtension(format.fileExtension)
     }
+
+    static func normalizedDestinationURL(from chosenURL: URL, format: ImageExportFormat) -> URL {
+        chosenURL
+            .deletingPathExtension()
+            .appendingPathExtension(format.fileExtension)
+    }
 }
 
 struct ImageExportPanelService: ImageExportSelecting {
@@ -128,16 +134,10 @@ struct ImageExportPanelService: ImageExportSelecting {
             return nil
         }
 
-        let format = formatForURL(url)
-        return ImageExportSelection(destinationURL: url, format: format)
-    }
-
-    private func formatForURL(_ url: URL) -> ImageExportFormat {
-        let ext = url.pathExtension.lowercased()
-        if ext == "jpg" || ext == "jpeg" {
-            return .jpeg
-        }
-        return .png
+        let selectedIndex = max(0, picker.indexOfSelectedItem)
+        let format = ImageExportFormat.allCases[selectedIndex]
+        let destinationURL = ImageExportNaming.normalizedDestinationURL(from: url, format: format)
+        return ImageExportSelection(destinationURL: destinationURL, format: format)
     }
 }
 

@@ -133,8 +133,7 @@ final class AppViewModel: ObservableObject {
             diagnosticsStore.record(
                 "image_export_succeeded",
                 details: [
-                    "format": url.pathExtension.lowercased(),
-                    "file": url.lastPathComponent
+                    "format": url.pathExtension.lowercased()
                 ]
             )
         } else {
