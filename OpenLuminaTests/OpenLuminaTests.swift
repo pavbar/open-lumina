@@ -260,15 +260,12 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertEqual(jpegURL.lastPathComponent, "Image-1.jpg")
     }
 
-    func testImageExportNamingNormalizesChosenURLToSelectedFormat() {
-        let chosenPNGURL = URL(fileURLWithPath: "/tmp/open-lumina-export-tests/scan.png")
-        let chosenJPEGURL = URL(fileURLWithPath: "/tmp/open-lumina-export-tests/scan.jpeg")
-
-        let normalizedToJPEG = ImageExportNaming.normalizedDestinationURL(from: chosenPNGURL, format: .jpeg)
-        let normalizedToPNG = ImageExportNaming.normalizedDestinationURL(from: chosenJPEGURL, format: .png)
-
-        XCTAssertEqual(normalizedToJPEG.lastPathComponent, "scan.jpg")
-        XCTAssertEqual(normalizedToPNG.lastPathComponent, "scan.png")
+    func testImageExportNamingPreservesUserBasenameWhenSwitchingFormats() {
+        XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study.png", format: .jpeg), "Custom Study.jpg")
+        XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study", format: .png), "Custom Study.png")
+        XCTAssertEqual(ImageExportNaming.filename(for: "scan.final.png", format: .jpeg), "scan.final.jpg")
+        XCTAssertEqual(ImageExportNaming.baseName(from: "scan.final.png"), "scan.final")
+        XCTAssertEqual(ImageExportNaming.baseName(from: "scan.final"), "scan.final")
     }
 
     func testImageWriterProducesPNGData() throws {

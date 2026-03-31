@@ -87,10 +87,25 @@ enum ImageExportNaming {
         directoryURL.appendingPathComponent(baseName).appendingPathExtension(format.fileExtension)
     }
 
-    static func normalizedDestinationURL(from chosenURL: URL, format: ImageExportFormat) -> URL {
-        chosenURL
-            .deletingPathExtension()
-            .appendingPathExtension(format.fileExtension)
+    static func filename(for fieldValue: String, format: ImageExportFormat) -> String {
+        let baseName = baseName(from: fieldValue)
+        return "\(baseName).\(format.fileExtension)"
+    }
+
+    static func baseName(from fieldValue: String) -> String {
+        let trimmed = fieldValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return "OpenLumina-Image"
+        }
+
+        let url = URL(fileURLWithPath: trimmed)
+        let extensionLowercased = url.pathExtension.lowercased()
+        guard ImageExportFormat.allCases.contains(where: { $0.fileExtension == extensionLowercased }) else {
+            return url.lastPathComponent
+        }
+
+        let baseName = url.deletingPathExtension().lastPathComponent
+        return baseName.isEmpty ? "OpenLumina-Image" : baseName
     }
 }
 
@@ -108,11 +123,7 @@ struct ImageExportPanelService: ImageExportSelecting {
         panel.prompt = "Export Image"
         panel.isExtensionHidden = false
         panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
-        panel.nameFieldStringValue = ImageExportNaming.destinationURL(
-            for: panel.directoryURL ?? FileManager.default.homeDirectoryForCurrentUser,
-            baseName: suggestedBaseName,
-            format: .png
-        ).lastPathComponent
+        panel.nameFieldStringValue = ImageExportNaming.filename(for: suggestedBaseName, format: .png)
 
         accessoryStack.orientation = .horizontal
         accessoryStack.spacing = 8
@@ -124,8 +135,7 @@ struct ImageExportPanelService: ImageExportSelecting {
         picker.action = #selector(ImageExportAccessoryController.formatChanged(_:))
         let controller = ImageExportAccessoryController(
             panel: panel,
-            picker: picker,
-            suggestedBaseName: suggestedBaseName
+            picker: picker
         )
         picker.target = controller
         objc_setAssociatedObject(panel, Unmanaged.passUnretained(panel).toOpaque(), controller, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
@@ -136,8 +146,7 @@ struct ImageExportPanelService: ImageExportSelecting {
 
         let selectedIndex = max(0, picker.indexOfSelectedItem)
         let format = ImageExportFormat.allCases[selectedIndex]
-        let destinationURL = ImageExportNaming.normalizedDestinationURL(from: url, format: format)
-        return ImageExportSelection(destinationURL: destinationURL, format: format)
+        return ImageExportSelection(destinationURL: url, format: format)
     }
 }
 
@@ -145,12 +154,10 @@ struct ImageExportPanelService: ImageExportSelecting {
 private final class ImageExportAccessoryController: NSObject {
     private weak var panel: NSSavePanel?
     private let picker: NSPopUpButton
-    private let suggestedBaseName: String
 
-    init(panel: NSSavePanel, picker: NSPopUpButton, suggestedBaseName: String) {
+    init(panel: NSSavePanel, picker: NSPopUpButton) {
         self.panel = panel
         self.picker = picker
-        self.suggestedBaseName = suggestedBaseName
     }
 
     @objc func formatChanged(_ sender: Any?) {
@@ -160,12 +167,7 @@ private final class ImageExportAccessoryController: NSObject {
 
         let selectedIndex = max(0, picker.indexOfSelectedItem)
         let format = ImageExportFormat.allCases[selectedIndex]
-        let directoryURL = panel.directoryURL ?? FileManager.default.homeDirectoryForCurrentUser
-        panel.nameFieldStringValue = ImageExportNaming.destinationURL(
-            for: directoryURL,
-            baseName: suggestedBaseName,
-            format: format
-        ).lastPathComponent
+        panel.nameFieldStringValue = ImageExportNaming.filename(for: panel.nameFieldStringValue, format: format)
     }
 }
 
