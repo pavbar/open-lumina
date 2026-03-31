@@ -267,8 +267,10 @@ final class OpenLuminaTests: XCTestCase {
 
     func testImageExportNamingPreservesUserBasenameWhenSwitchingFormats() {
         XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study.png", format: .jpeg), "Custom Study.jpg")
+        XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study.jpeg", format: .png), "Custom Study.png")
         XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study", format: .png), "Custom Study.png")
         XCTAssertEqual(ImageExportNaming.filename(for: "scan.final.png", format: .jpeg), "scan.final.jpg")
+        XCTAssertEqual(ImageExportNaming.baseName(from: "Custom Study.jpeg"), "Custom Study")
         XCTAssertEqual(ImageExportNaming.baseName(from: "scan.final.png"), "scan.final")
         XCTAssertEqual(ImageExportNaming.baseName(from: "scan.final"), "scan.final")
     }

@@ -105,13 +105,15 @@ enum ImageExportNaming {
 
         let url = URL(fileURLWithPath: trimmed)
         let extensionLowercased = url.pathExtension.lowercased()
-        guard ImageExportFormat.allCases.contains(where: { $0.fileExtension == extensionLowercased }) else {
+        guard recognizedExtensions.contains(extensionLowercased) else {
             return url.lastPathComponent
         }
 
         let baseName = url.deletingPathExtension().lastPathComponent
         return baseName.isEmpty ? "OpenLumina-Image" : baseName
     }
+
+    private static let recognizedExtensions: Set<String> = ["png", "jpg", "jpeg"]
 }
 
 struct ImageExportPanelService: ImageExportSelecting {
