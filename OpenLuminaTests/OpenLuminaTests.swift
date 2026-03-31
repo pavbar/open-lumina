@@ -260,6 +260,25 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertEqual(jpegURL.lastPathComponent, "Image-1.jpg")
     }
 
+    @MainActor
+    func testImageExportServiceNormalizesSelectedDestinationExtensionBeforeWriting() throws {
+        let selection = ImageExportSelection(
+            destinationURL: URL(fileURLWithPath: "/tmp/open-lumina-export-tests/Custom Study.png"),
+            format: .jpeg
+        )
+        let writer = RecordingImageWriter()
+        let service = ImageExportService(
+            selectionService: StubImageExportSelectionService(selection: selection),
+            imageWriter: writer
+        )
+
+        let exportedURL = try service.exportImage(makeTestImage(), suggestedName: "Custom Study")
+
+        XCTAssertEqual(writer.lastDestinationURL?.lastPathComponent, "Custom Study.jpg")
+        XCTAssertEqual(writer.lastFormat, .jpeg)
+        XCTAssertEqual(exportedURL?.lastPathComponent, "Custom Study.jpg")
+    }
+
     func testImageExportNamingPreservesUserBasenameWhenSwitchingFormats() {
         XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study.png", format: .jpeg), "Custom Study.jpg")
         XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study.jpeg", format: .png), "Custom Study.png")
@@ -359,5 +378,24 @@ private final class StubImageExportService: ImageExporting {
     func exportImage(_ image: CGImage, suggestedName: String) throws -> URL? {
         lastSuggestedName = suggestedName
         return nextResult
+    }
+}
+
+private struct StubImageExportSelectionService: ImageExportSelecting {
+    let selection: ImageExportSelection?
+
+    @MainActor
+    func chooseExportDestination(suggestedBaseName: String) -> ImageExportSelection? {
+        selection
+    }
+}
+
+private final class RecordingImageWriter: RenderedImageWriting {
+    private(set) var lastDestinationURL: URL?
+    private(set) var lastFormat: ImageExportFormat?
+
+    func write(_ image: CGImage, to url: URL, format: ImageExportFormat) throws {
+        lastDestinationURL = url
+        lastFormat = format
     }
 }
