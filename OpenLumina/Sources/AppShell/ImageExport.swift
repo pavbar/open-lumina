@@ -87,11 +87,6 @@ enum ImageExportNaming {
         directoryURL.appendingPathComponent(baseName).appendingPathExtension(format.fileExtension)
     }
 
-    static func normalizedDestinationURL(for url: URL, format: ImageExportFormat) -> URL {
-        let baseName = baseName(from: url.lastPathComponent)
-        return url.deletingLastPathComponent().appendingPathComponent(baseName).appendingPathExtension(format.fileExtension)
-    }
-
     static func filename(for fieldValue: String, format: ImageExportFormat) -> String {
         let baseName = baseName(from: fieldValue)
         return "\(baseName).\(format.fileExtension)"
@@ -145,6 +140,7 @@ struct ImageExportPanelService: ImageExportSelecting {
             picker: picker
         )
         picker.target = controller
+        panel.delegate = controller
         objc_setAssociatedObject(panel, Unmanaged.passUnretained(panel).toOpaque(), controller, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
         guard panel.runModal() == .OK, let url = panel.url else {
@@ -153,12 +149,12 @@ struct ImageExportPanelService: ImageExportSelecting {
 
         let selectedIndex = max(0, picker.indexOfSelectedItem)
         let format = ImageExportFormat.allCases[selectedIndex]
-        return ImageExportSelection(destinationURL: ImageExportNaming.normalizedDestinationURL(for: url, format: format), format: format)
+        return ImageExportSelection(destinationURL: url, format: format)
     }
 }
 
 @MainActor
-private final class ImageExportAccessoryController: NSObject {
+private final class ImageExportAccessoryController: NSObject, NSOpenSavePanelDelegate {
     private weak var panel: NSSavePanel?
     private let picker: NSPopUpButton
 
@@ -175,6 +171,14 @@ private final class ImageExportAccessoryController: NSObject {
         let selectedIndex = max(0, picker.indexOfSelectedItem)
         let format = ImageExportFormat.allCases[selectedIndex]
         panel.nameFieldStringValue = ImageExportNaming.filename(for: panel.nameFieldStringValue, format: format)
+    }
+
+    func panel(_ sender: Any, userEnteredFilename filename: String, confirmed okFlag: Bool) -> String? {
+        guard okFlag else { return filename }
+
+        let selectedIndex = max(0, picker.indexOfSelectedItem)
+        let format = ImageExportFormat.allCases[selectedIndex]
+        return ImageExportNaming.filename(for: filename, format: format)
     }
 }
 

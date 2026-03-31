@@ -255,14 +255,9 @@ final class OpenLuminaTests: XCTestCase {
         let directory = URL(fileURLWithPath: "/tmp/open-lumina-export-tests", isDirectory: true)
         let pngURL = ImageExportNaming.destinationURL(for: directory, baseName: "Image-1", format: .png)
         let jpegURL = ImageExportNaming.destinationURL(for: directory, baseName: "Image-1", format: .jpeg)
-        let normalizedJPEG = ImageExportNaming.normalizedDestinationURL(
-            for: directory.appendingPathComponent("Image-1.png"),
-            format: .jpeg
-        )
 
         XCTAssertEqual(pngURL.lastPathComponent, "Image-1.png")
         XCTAssertEqual(jpegURL.lastPathComponent, "Image-1.jpg")
-        XCTAssertEqual(normalizedJPEG.lastPathComponent, "Image-1.jpg")
     }
 
     func testImageExportNamingPreservesUserBasenameWhenSwitchingFormats() {
