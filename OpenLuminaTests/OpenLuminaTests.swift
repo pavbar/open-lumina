@@ -69,7 +69,8 @@ final class OpenLuminaTests: XCTestCase {
         try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Navigation Fixture")
         let viewModel = AppViewModel(
             openPanelService: StubOpenPanelService(folderURL: root, isoURL: nil),
-            studyLoader: StudyLoader(importer: TestISOImporter(rootURL: root), parser: StudyCatalogLoader(), renderer: DICOMImageRenderer())
+            studyLoader: StudyLoader(importer: TestISOImporter(rootURL: root), parser: StudyCatalogLoader(), renderer: DICOMImageRenderer()),
+            imageExportService: StubImageExportService()
         )
 
         let loaded = await viewModel.loadStudy(from: .folder(root))
@@ -94,7 +95,8 @@ final class OpenLuminaTests: XCTestCase {
                 importer: TestISOImporter(rootURL: root),
                 parser: StudyCatalogLoader(),
                 renderer: DICOMImageRenderer()
-            )
+            ),
+            imageExportService: StubImageExportService()
         )
 
         let loaded = await viewModel.loadStudy(from: .iso(URL(fileURLWithPath: "/tmp/mock.iso")))
@@ -119,7 +121,8 @@ final class OpenLuminaTests: XCTestCase {
                 importer: TestISOImporter(rootURL: root),
                 parser: StudyCatalogLoader(),
                 renderer: DICOMImageRenderer()
-            )
+            ),
+            imageExportService: StubImageExportService()
         )
 
         let loaded = await viewModel.loadStudy(from: .folder(root))
@@ -179,6 +182,185 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertFalse(export.contains("/Users/redacted-user"))
     }
 
+    @MainActor
+    func testExportAvailabilityTracksRenderableImageSelection() async throws {
+        let root = try makeFixtureRoot(named: "Export Fixture")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Export Fixture")
+        let exportService = StubImageExportService()
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: root, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: root),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            ),
+            imageExportService: exportService
+        )
+
+        XCTAssertFalse(viewModel.canExportSelectedImage)
+
+        let loaded = await viewModel.loadStudy(from: .folder(root))
+        XCTAssertTrue(loaded)
+        XCTAssertTrue(viewModel.canExportSelectedImage)
+    }
+
+    @MainActor
+    func testExportSelectedImageUsesSanitizedDisplayNameAndUpdatesStatus() async throws {
+        let root = try makeFixtureRoot(named: "Export Display Name")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Export Display Name")
+        let exportService = StubImageExportService()
+        exportService.nextResult = URL(fileURLWithPath: "/tmp/Image-1.png")
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: root, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: root),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            ),
+            imageExportService: exportService
+        )
+
+        let loaded = await viewModel.loadStudy(from: .folder(root))
+        XCTAssertTrue(loaded)
+
+        let url = try viewModel.exportSelectedImage()
+        XCTAssertEqual(url?.lastPathComponent, "Image-1.png")
+        XCTAssertEqual(exportService.lastSuggestedName, "Image 1")
+        XCTAssertEqual(viewModel.statusMessage, "Saved Image-1.png")
+    }
+
+    @MainActor
+    func testExportSelectedImageFailsWithoutRenderableImage() throws {
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: nil, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: URL(fileURLWithPath: "/tmp/unneeded")),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            ),
+            imageExportService: StubImageExportService()
+        )
+
+        XCTAssertThrowsError(try viewModel.exportSelectedImage()) { error in
+            XCTAssertEqual(error as? ImageExportError, .noRenderableImage)
+        }
+        XCTAssertEqual(viewModel.exportErrorMessage, "Select a renderable image before exporting.")
+    }
+
+    @MainActor
+    func testExportCancelClearsStaleExportErrorMessage() async throws {
+        let root = try makeFixtureRoot(named: "Export Cancel")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Export Cancel")
+        let exportService = StubImageExportService()
+        exportService.nextResult = URL(fileURLWithPath: "/tmp/sample.png")
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: root, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: root),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            ),
+            imageExportService: exportService
+        )
+
+        let loaded = await viewModel.loadStudy(from: .folder(root))
+        XCTAssertTrue(loaded)
+
+        viewModel.exportErrorMessage = "stale"
+        exportService.nextResult = nil
+
+        let url = try viewModel.exportSelectedImage()
+        XCTAssertNil(url)
+        XCTAssertNil(viewModel.exportErrorMessage)
+    }
+
+    @MainActor
+    func testExportFailureSetsDedicatedExportErrorState() async throws {
+        let root = try makeFixtureRoot(named: "Export Failure Fixture")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Export Failure Fixture")
+        let exportService = ThrowingImageExportService(error: ImageExportError.failedToFinalize)
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: root, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: root),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            ),
+            imageExportService: exportService
+        )
+
+        let loaded = await viewModel.loadStudy(from: .folder(root))
+        XCTAssertTrue(loaded)
+
+        XCTAssertThrowsError(try viewModel.exportSelectedImage()) { error in
+            XCTAssertEqual(error as? ImageExportError, .failedToFinalize)
+        }
+        XCTAssertEqual(viewModel.exportErrorMessage, "Open Lumina could not finish writing the exported image.")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testImageExportNamingSanitizesFilenameStem() {
+        XCTAssertEqual(ImageExportNaming.sanitizedBaseName(from: " PA Chest / View 1 "), "PA-Chest-View-1")
+        XCTAssertEqual(ImageExportNaming.sanitizedBaseName(from: ""), "OpenLumina-Image")
+    }
+
+    func testImageExportNamingBuildsDestinationURLForChosenFormat() {
+        let directory = URL(fileURLWithPath: "/tmp/open-lumina-export-tests", isDirectory: true)
+        let pngURL = ImageExportNaming.destinationURL(for: directory, baseName: "Image-1", format: .png)
+        let jpegURL = ImageExportNaming.destinationURL(for: directory, baseName: "Image-1", format: .jpeg)
+
+        XCTAssertEqual(pngURL.lastPathComponent, "Image-1.png")
+        XCTAssertEqual(jpegURL.lastPathComponent, "Image-1.jpg")
+    }
+
+    @MainActor
+    func testImageExportServiceNormalizesSelectedDestinationExtensionBeforeWriting() throws {
+        let selection = ImageExportSelection(
+            destinationURL: URL(fileURLWithPath: "/tmp/open-lumina-export-tests/Custom Study.png"),
+            format: .jpeg
+        )
+        let writer = RecordingImageWriter()
+        let service = ImageExportService(
+            selectionService: StubImageExportSelectionService(selection: selection),
+            imageWriter: writer
+        )
+
+        let exportedURL = try service.exportImage(makeTestImage(), suggestedName: "Custom Study")
+
+        XCTAssertEqual(writer.lastDestinationURL?.lastPathComponent, "Custom Study.jpg")
+        XCTAssertEqual(writer.lastFormat, .jpeg)
+        XCTAssertEqual(exportedURL?.lastPathComponent, "Custom Study.jpg")
+    }
+
+    func testImageExportNamingPreservesUserBasenameWhenSwitchingFormats() {
+        XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study.png", format: .jpeg), "Custom Study.jpg")
+        XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study.jpeg", format: .png), "Custom Study.png")
+        XCTAssertEqual(ImageExportNaming.filename(for: "Custom Study", format: .png), "Custom Study.png")
+        XCTAssertEqual(ImageExportNaming.filename(for: "scan.final.png", format: .jpeg), "scan.final.jpg")
+        XCTAssertEqual(ImageExportNaming.baseName(from: "Custom Study.jpeg"), "Custom Study")
+        XCTAssertEqual(ImageExportNaming.baseName(from: "scan.final.png"), "scan.final")
+        XCTAssertEqual(ImageExportNaming.baseName(from: "scan.final"), "scan.final")
+    }
+
+    func testImageWriterProducesPNGData() throws {
+        let url = temporaryFileURL(ext: "png")
+        try CGImageWriter().write(makeTestImage(), to: url, format: .png)
+        let data = try Data(contentsOf: url)
+        XCTAssertTrue(data.starts(with: [0x89, 0x50, 0x4E, 0x47]))
+    }
+
+    func testImageWriterProducesJPEGData() throws {
+        let url = temporaryFileURL(ext: "jpg")
+        try CGImageWriter().write(makeTestImage(), to: url, format: .jpeg)
+        let data = try Data(contentsOf: url)
+        XCTAssertTrue(data.starts(with: [0xFF, 0xD8, 0xFF]))
+    }
+
+    func testImageWriterFailsForInvalidDestination() {
+        let url = URL(fileURLWithPath: "/dev/null/missing/output.png")
+        XCTAssertThrowsError(try CGImageWriter().write(makeTestImage(), to: url, format: .png))
+    }
+
     private func makeFixtureRoot(named name: String = UUID().uuidString) throws -> URL {
         let container = FileManager.default.temporaryDirectory
             .appendingPathComponent("open-lumina-tests-\(UUID().uuidString)", isDirectory: true)
@@ -188,6 +370,38 @@ final class OpenLuminaTests: XCTestCase {
             try? FileManager.default.removeItem(at: container)
         }
         return root
+    }
+
+    private func temporaryFileURL(ext: String) -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("open-lumina-export-tests-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: root)
+        }
+        return root.appendingPathComponent("sample.\(ext)")
+    }
+
+    private func makeTestImage() -> CGImage {
+        let width = 2
+        let height = 2
+        let bytesPerRow = width
+        let pixels: [UInt8] = [0, 120, 180, 255]
+        let data = Data(pixels) as CFData
+        let provider = CGDataProvider(data: data)!
+        return CGImage(
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bitsPerPixel: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+            provider: provider,
+            decode: nil,
+            shouldInterpolate: false,
+            intent: .defaultIntent
+        )!
     }
 }
 
@@ -207,4 +421,46 @@ private struct StubOpenPanelService: OpenPanelServicing {
 
     func chooseFolder() -> URL? { folderURL }
     func chooseISOFile() -> URL? { isoURL }
+}
+
+@MainActor
+private final class StubImageExportService: ImageExporting {
+    var nextResult: URL?
+    var lastSuggestedName: String?
+
+    func exportImage(_ image: CGImage, suggestedName: String) throws -> URL? {
+        lastSuggestedName = suggestedName
+        return nextResult
+    }
+}
+
+private final class ThrowingImageExportService: ImageExporting {
+    let error: Error
+
+    init(error: Error) {
+        self.error = error
+    }
+
+    func exportImage(_ image: CGImage, suggestedName: String) throws -> URL? {
+        throw error
+    }
+}
+
+private struct StubImageExportSelectionService: ImageExportSelecting {
+    let selection: ImageExportSelection?
+
+    @MainActor
+    func chooseExportDestination(suggestedBaseName: String) -> ImageExportSelection? {
+        selection
+    }
+}
+
+private final class RecordingImageWriter: RenderedImageWriting {
+    private(set) var lastDestinationURL: URL?
+    private(set) var lastFormat: ImageExportFormat?
+
+    func write(_ image: CGImage, to url: URL, format: ImageExportFormat) throws {
+        lastDestinationURL = url
+        lastFormat = format
+    }
 }

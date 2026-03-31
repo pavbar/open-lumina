@@ -15,20 +15,24 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var zoomScale: CGFloat = 1.0
     @Published private(set) var statusMessage = "Open a local study folder or ISO image to begin."
     @Published var errorMessage: String?
+    @Published var exportErrorMessage: String?
 
     let diagnosticsStore: DiagnosticLogStore
     private let openPanelService: OpenPanelServicing
     private let studyLoader: StudyLoading
+    private let imageExportService: ImageExporting
     private var activeSession: StudySession?
     private var previewGenerationToken = UUID()
 
     init(
         openPanelService: OpenPanelServicing,
         studyLoader: StudyLoading,
+        imageExportService: ImageExporting,
         diagnosticsStore: DiagnosticLogStore = DiagnosticLogStore()
     ) {
         self.openPanelService = openPanelService
         self.studyLoader = studyLoader
+        self.imageExportService = imageExportService
         self.diagnosticsStore = diagnosticsStore
     }
 
@@ -37,12 +41,14 @@ final class AppViewModel: ObservableObject {
         return AppViewModel(
             openPanelService: services.openPanelService,
             studyLoader: services.studyLoader,
+            imageExportService: services.imageExportService,
             diagnosticsStore: services.diagnosticsStore
         )
     }
 
     var hasOpenStudy: Bool { catalog != nil }
     var hasRenderableImage: Bool { renderedImage != nil }
+    var canExportSelectedImage: Bool { renderedImage != nil && selectedImage != nil }
 
     func previewImage(forSeriesID seriesID: String) -> CGImage? {
         seriesPreviewImages[seriesID]
@@ -114,6 +120,42 @@ final class AppViewModel: ObservableObject {
         zoomScale = 1.0
         statusMessage = "Open a local study folder or ISO image to begin."
         errorMessage = nil
+        exportErrorMessage = nil
+    }
+
+    @discardableResult
+    func exportSelectedImage() throws -> URL? {
+        exportErrorMessage = nil
+
+        do {
+            guard let renderedImage, let selectedImage else {
+                throw ImageExportError.noRenderableImage
+            }
+            let url = try imageExportService.exportImage(renderedImage, suggestedName: selectedImage.displayName)
+            if let url {
+                exportErrorMessage = nil
+                statusMessage = "Saved \(url.lastPathComponent)"
+                diagnosticsStore.record(
+                    "image_export_succeeded",
+                    details: [
+                        "format": url.pathExtension.lowercased()
+                    ]
+                )
+            } else {
+                exportErrorMessage = nil
+                statusMessage = "Export cancelled."
+            }
+            return url
+        } catch {
+            exportErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            diagnosticsStore.record(
+                "image_export_failed",
+                details: [
+                    "reason": String(describing: type(of: error))
+                ]
+            )
+            throw error
+        }
     }
 
     func selectSeries(_ seriesID: String) {

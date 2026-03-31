@@ -20,6 +20,8 @@
 		A0000000000000000000020B /* SyntheticStudyFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010B /* SyntheticStudyFactory.swift */; };
 		A0000000000000000000020C /* OpenLuminaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010D /* OpenLuminaTests.swift */; };
 		A0000000000000000000020D /* OpenLuminaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010E /* OpenLuminaUITests.swift */; };
+		A0000000000000000000020E /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010F /* AboutView.swift */; };
+		A0000000000000000000020F /* ImageExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000110 /* ImageExport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,6 +56,8 @@
 		A0000000000000000000010C /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
 		A0000000000000000000010D /* OpenLuminaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenLuminaTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000010E /* OpenLuminaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenLuminaUITests.swift; sourceTree = "<group>"; };
+		A0000000000000000000010F /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		A00000000000000000000110 /* ImageExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageExport.swift; sourceTree = "<group>"; };
 		A00000000000000000000120 /* OpenLumina.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenLumina.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000121 /* OpenLuminaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OpenLuminaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000122 /* OpenLuminaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OpenLuminaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -104,6 +108,8 @@
 				A00000000000000000000102,
 				A00000000000000000000103,
 				A00000000000000000000104,
+				A0000000000000000000010F,
+				A00000000000000000000110,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -273,6 +279,8 @@
 				A00000000000000000000202,
 				A00000000000000000000203,
 				A00000000000000000000204,
+				A0000000000000000000020E,
+				A0000000000000000000020F,
 				A00000000000000000000205,
 				A00000000000000000000206,
 				A00000000000000000000207,

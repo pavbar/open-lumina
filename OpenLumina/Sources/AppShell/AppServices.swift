@@ -7,6 +7,7 @@ struct AppServices {
     let openPanelService: OpenPanelServicing
     let studyLoader: StudyLoading
     let diagnosticsStore: DiagnosticLogStore
+    let imageExportService: ImageExporting
 
     static func bootstrap() -> AppServices {
         if let scenario = ProcessInfo.processInfo.environment["OPEN_LUMINA_UI_TEST_SCENARIO"] {
@@ -22,7 +23,11 @@ struct AppServices {
         return AppServices(
             openPanelService: openPanelService,
             studyLoader: studyLoader,
-            diagnosticsStore: diagnosticsStore
+            diagnosticsStore: diagnosticsStore,
+            imageExportService: ImageExportService(
+                selectionService: ImageExportPanelService(),
+                imageWriter: CGImageWriter()
+            )
         )
     }
 }
@@ -69,7 +74,11 @@ struct UITestAppServices {
         return AppServices(
             openPanelService: openPanelService,
             studyLoader: studyLoader,
-            diagnosticsStore: diagnosticsStore
+            diagnosticsStore: diagnosticsStore,
+            imageExportService: ImageExportService(
+                selectionService: ImageExportPanelService(),
+                imageWriter: CGImageWriter()
+            )
         )
     }
 }
