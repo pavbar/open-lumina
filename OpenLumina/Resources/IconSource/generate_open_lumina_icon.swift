@@ -52,13 +52,13 @@ for slot in slots {
 
     bitmap.size = NSSize(width: slot.pixelSize, height: slot.pixelSize)
     NSGraphicsContext.saveGraphicsState()
+    defer { NSGraphicsContext.restoreGraphicsState() }
     guard let graphicsContext = NSGraphicsContext(bitmapImageRep: bitmap) else {
         throw NSError(domain: "OpenLuminaIconGenerator", code: 2, userInfo: [NSLocalizedDescriptionKey: "Missing graphics context"])
     }
     NSGraphicsContext.current = graphicsContext
 
-    drawIcon(in: graphicsContext.cgContext, size: CGSize(width: slot.pixelSize, height: slot.pixelSize))
-    NSGraphicsContext.restoreGraphicsState()
+    try drawIcon(in: graphicsContext.cgContext, size: CGSize(width: slot.pixelSize, height: slot.pixelSize))
 
     guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
         throw NSError(domain: "OpenLuminaIconGenerator", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to encode \(slot.filename)"])
@@ -67,7 +67,7 @@ for slot in slots {
     try pngData.write(to: iconSetURL.appendingPathComponent(slot.filename), options: .atomic)
 }
 
-func drawIcon(in context: CGContext, size: CGSize) {
+func drawIcon(in context: CGContext, size: CGSize) throws {
     let rect = CGRect(origin: .zero, size: size)
     let scale = min(size.width, size.height) / 1024.0
     let inset = 22.0 * scale
@@ -84,17 +84,21 @@ func drawIcon(in context: CGContext, size: CGSize) {
     context.saveGState()
     backgroundPath.addClip()
 
-    let backgroundGradient = NSGradient(colors: [
+    guard let backgroundGradient = NSGradient(colors: [
         NSColor(calibratedRed: 0.10, green: 0.14, blue: 0.20, alpha: 1.0),
         NSColor(calibratedRed: 0.08, green: 0.23, blue: 0.36, alpha: 1.0),
         NSColor(calibratedRed: 0.03, green: 0.10, blue: 0.17, alpha: 1.0)
-    ])!
+    ]) else {
+        throw NSError(domain: "OpenLuminaIconGenerator", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to create background gradient"])
+    }
     backgroundGradient.draw(in: backgroundPath, angle: -55)
 
-    let glowGradient = NSGradient(colors: [
+    guard let glowGradient = NSGradient(colors: [
         NSColor(calibratedRed: 0.52, green: 0.89, blue: 0.99, alpha: 0.55),
         NSColor(calibratedRed: 0.52, green: 0.89, blue: 0.99, alpha: 0.0)
-    ])!
+    ]) else {
+        throw NSError(domain: "OpenLuminaIconGenerator", code: 4, userInfo: [NSLocalizedDescriptionKey: "Failed to create glow gradient"])
+    }
     let glowRect = CGRect(x: 190 * scale, y: 530 * scale, width: 640 * scale, height: 410 * scale)
     glowGradient.draw(in: NSBezierPath(ovalIn: glowRect), relativeCenterPosition: NSPoint(x: 0, y: 0))
 
@@ -112,11 +116,13 @@ func drawIcon(in context: CGContext, size: CGSize) {
 
     let xrayRect = CGRect(x: 320 * scale, y: 292 * scale, width: 384 * scale, height: 384 * scale)
     let xrayPath = NSBezierPath(ovalIn: xrayRect)
-    let xrayGradient = NSGradient(colors: [
+    guard let xrayGradient = NSGradient(colors: [
         NSColor(calibratedRed: 0.83, green: 0.97, blue: 1.0, alpha: 1.0),
         NSColor(calibratedRed: 0.53, green: 0.82, blue: 0.92, alpha: 1.0),
         NSColor(calibratedRed: 0.13, green: 0.28, blue: 0.36, alpha: 1.0)
-    ])!
+    ]) else {
+        throw NSError(domain: "OpenLuminaIconGenerator", code: 5, userInfo: [NSLocalizedDescriptionKey: "Failed to create x-ray gradient"])
+    }
     xrayGradient.draw(in: xrayPath, relativeCenterPosition: NSPoint(x: 0, y: 0.15))
 
     let beamColor = NSColor(calibratedWhite: 1.0, alpha: 0.56)
