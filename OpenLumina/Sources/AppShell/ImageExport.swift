@@ -87,6 +87,14 @@ enum ImageExportNaming {
         directoryURL.appendingPathComponent(baseName).appendingPathExtension(format.fileExtension)
     }
 
+    static func normalizedDestinationURL(for url: URL, format: ImageExportFormat) -> URL {
+        destinationURL(
+            for: url.deletingLastPathComponent(),
+            baseName: baseName(from: url.lastPathComponent),
+            format: format
+        )
+    }
+
     static func filename(for fieldValue: String, format: ImageExportFormat) -> String {
         let baseName = baseName(from: fieldValue)
         return "\(baseName).\(format.fileExtension)"
@@ -134,12 +142,9 @@ struct ImageExportPanelService: ImageExportSelecting {
         picker.selectItem(at: 0)
         panel.accessoryView = accessoryStack
 
-        picker.action = #selector(ImageExportAccessoryController.formatChanged(_:))
-        let controller = ImageExportAccessoryController(
-            panel: panel,
-            picker: picker
-        )
+        let controller = ImageExportPanelDelegate(panel: panel, picker: picker)
         picker.target = controller
+        picker.action = #selector(ImageExportPanelDelegate.formatChanged(_:))
         panel.delegate = controller
         objc_setAssociatedObject(panel, Unmanaged.passUnretained(panel).toOpaque(), controller, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
@@ -147,16 +152,19 @@ struct ImageExportPanelService: ImageExportSelecting {
             return nil
         }
 
-        let selectedIndex = max(0, picker.indexOfSelectedItem)
-        let format = ImageExportFormat.allCases[selectedIndex]
+        let format = controller.selectedFormat
         return ImageExportSelection(destinationURL: url, format: format)
     }
 }
 
 @MainActor
-private final class ImageExportAccessoryController: NSObject, NSOpenSavePanelDelegate {
+private final class ImageExportPanelDelegate: NSObject, NSOpenSavePanelDelegate {
     private weak var panel: NSSavePanel?
     private let picker: NSPopUpButton
+
+    var selectedFormat: ImageExportFormat {
+        ImageExportFormat.allCases[max(0, picker.indexOfSelectedItem)]
+    }
 
     init(panel: NSSavePanel, picker: NSPopUpButton) {
         self.panel = panel
@@ -164,21 +172,16 @@ private final class ImageExportAccessoryController: NSObject, NSOpenSavePanelDel
     }
 
     @objc func formatChanged(_ sender: Any?) {
-        guard
-            let panel
-        else { return }
-
-        let selectedIndex = max(0, picker.indexOfSelectedItem)
-        let format = ImageExportFormat.allCases[selectedIndex]
-        panel.nameFieldStringValue = ImageExportNaming.filename(for: panel.nameFieldStringValue, format: format)
+        guard let panel else { return }
+        panel.nameFieldStringValue = ImageExportNaming.filename(
+            for: panel.nameFieldStringValue,
+            format: selectedFormat
+        )
     }
 
     func panel(_ sender: Any, userEnteredFilename filename: String, confirmed okFlag: Bool) -> String? {
         guard okFlag else { return filename }
-
-        let selectedIndex = max(0, picker.indexOfSelectedItem)
-        let format = ImageExportFormat.allCases[selectedIndex]
-        return ImageExportNaming.filename(for: filename, format: format)
+        return ImageExportNaming.filename(for: filename, format: selectedFormat)
     }
 }
 
@@ -218,7 +221,8 @@ struct ImageExportService: ImageExporting {
         guard let selection = selectionService.chooseExportDestination(suggestedBaseName: baseName) else {
             return nil
         }
-        try imageWriter.write(image, to: selection.destinationURL, format: selection.format)
-        return selection.destinationURL
+        let destinationURL = ImageExportNaming.normalizedDestinationURL(for: selection.destinationURL, format: selection.format)
+        try imageWriter.write(image, to: destinationURL, format: selection.format)
+        return destinationURL
     }
 }
