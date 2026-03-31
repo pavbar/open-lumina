@@ -11,6 +11,7 @@
 
 ## App code
 - [OpenLumina](OpenLumina) - native macOS application sources
+- [OpenLumina/Resources](OpenLumina/Resources) - app resources, including the asset catalog and deterministic icon source
 - [OpenLumina.xcodeproj](OpenLumina.xcodeproj) - native Xcode project with app, unit tests, and UI tests
 - [OpenLuminaTests](OpenLuminaTests) - synthetic unit test coverage for parsing, cleanup, rendering, and state
 - [OpenLuminaUITests](OpenLuminaUITests) - UI smoke tests for launch and synthetic open flows
