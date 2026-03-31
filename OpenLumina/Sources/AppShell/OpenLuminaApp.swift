@@ -124,7 +124,9 @@ private extension OpenLuminaApp {
         do {
             try viewModel.exportSelectedImage()
         } catch {
-            viewModel.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            if case ImageExportError.noRenderableImage = error {
+                viewModel.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
         }
     }
 }

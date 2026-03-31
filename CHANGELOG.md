@@ -19,3 +19,4 @@
 - Added a custom macOS About flow with bundle-driven version/build display and creator attribution for Pavlo Barzdun.
 - Added local-only PNG and JPEG export for the currently selected rendered image in the File menu and viewer UI.
 - Added export-focused test coverage for filename sanitization, encoder output, invalid destinations, no-image handling, and viewer export availability.
+- Separated export failure alerts from study-open alerts so each workflow reports the correct user-facing title.

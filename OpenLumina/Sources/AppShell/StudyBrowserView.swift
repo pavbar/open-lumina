@@ -58,6 +58,20 @@ struct StudyBrowserView: View {
         } message: {
             Text(viewModel.errorMessage ?? "Unknown error")
         }
+        .alert("Unable to Export Image", isPresented: Binding(
+            get: { viewModel.exportErrorMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    viewModel.exportErrorMessage = nil
+                }
+            }
+        )) {
+            Button("OK", role: .cancel) {
+                viewModel.exportErrorMessage = nil
+            }
+        } message: {
+            Text(viewModel.exportErrorMessage ?? "Unknown error")
+        }
     }
 
     private var sidebar: some View {
@@ -444,7 +458,9 @@ struct StudyBrowserView: View {
         do {
             try viewModel.exportSelectedImage()
         } catch {
-            viewModel.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            if case ImageExportError.noRenderableImage = error {
+                viewModel.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
         }
     }
 }

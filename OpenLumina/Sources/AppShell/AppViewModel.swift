@@ -15,6 +15,7 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var zoomScale: CGFloat = 1.0
     @Published private(set) var statusMessage = "Open a local study folder or ISO image to begin."
     @Published var errorMessage: String?
+    @Published var exportErrorMessage: String?
 
     let diagnosticsStore: DiagnosticLogStore
     private let openPanelService: OpenPanelServicing
@@ -119,6 +120,7 @@ final class AppViewModel: ObservableObject {
         zoomScale = 1.0
         statusMessage = "Open a local study folder or ISO image to begin."
         errorMessage = nil
+        exportErrorMessage = nil
     }
 
     @discardableResult
@@ -127,19 +129,31 @@ final class AppViewModel: ObservableObject {
             throw ImageExportError.noRenderableImage
         }
 
-        let url = try imageExportService.exportImage(renderedImage, suggestedName: selectedImage.displayName)
-        if let url {
-            statusMessage = "Saved \(url.lastPathComponent)"
+        do {
+            let url = try imageExportService.exportImage(renderedImage, suggestedName: selectedImage.displayName)
+            if let url {
+                exportErrorMessage = nil
+                statusMessage = "Saved \(url.lastPathComponent)"
+                diagnosticsStore.record(
+                    "image_export_succeeded",
+                    details: [
+                        "format": url.pathExtension.lowercased()
+                    ]
+                )
+            } else {
+                statusMessage = "Export cancelled."
+            }
+            return url
+        } catch {
+            exportErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             diagnosticsStore.record(
-                "image_export_succeeded",
+                "image_export_failed",
                 details: [
-                    "format": url.pathExtension.lowercased()
+                    "reason": String(describing: type(of: error))
                 ]
             )
-        } else {
-            statusMessage = "Export cancelled."
+            throw error
         }
-        return url
     }
 
     func selectSeries(_ seriesID: String) {

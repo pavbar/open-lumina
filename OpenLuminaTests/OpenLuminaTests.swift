@@ -246,6 +246,31 @@ final class OpenLuminaTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testExportFailureSetsDedicatedExportErrorState() async throws {
+        let root = try makeFixtureRoot(named: "Export Failure Fixture")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Export Failure Fixture")
+        let exportService = ThrowingImageExportService(error: ImageExportError.failedToFinalize)
+        let viewModel = AppViewModel(
+            openPanelService: StubOpenPanelService(folderURL: root, isoURL: nil),
+            studyLoader: StudyLoader(
+                importer: TestISOImporter(rootURL: root),
+                parser: StudyCatalogLoader(),
+                renderer: DICOMImageRenderer()
+            ),
+            imageExportService: exportService
+        )
+
+        let loaded = await viewModel.loadStudy(from: .folder(root))
+        XCTAssertTrue(loaded)
+
+        XCTAssertThrowsError(try viewModel.exportSelectedImage()) { error in
+            XCTAssertEqual(error as? ImageExportError, .failedToFinalize)
+        }
+        XCTAssertEqual(viewModel.exportErrorMessage, "Open Lumina could not finish writing the exported image.")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testImageExportNamingSanitizesFilenameStem() {
         XCTAssertEqual(ImageExportNaming.sanitizedBaseName(from: " PA Chest / View 1 "), "PA-Chest-View-1")
         XCTAssertEqual(ImageExportNaming.sanitizedBaseName(from: ""), "OpenLumina-Image")
@@ -378,6 +403,18 @@ private final class StubImageExportService: ImageExporting {
     func exportImage(_ image: CGImage, suggestedName: String) throws -> URL? {
         lastSuggestedName = suggestedName
         return nextResult
+    }
+}
+
+private final class ThrowingImageExportService: ImageExporting {
+    let error: Error
+
+    init(error: Error) {
+        self.error = error
+    }
+
+    func exportImage(_ image: CGImage, suggestedName: String) throws -> URL? {
+        throw error
     }
 }
 
