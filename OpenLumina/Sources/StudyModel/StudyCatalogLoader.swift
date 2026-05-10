@@ -75,7 +75,7 @@ struct StudyCatalogLoader: StudyCatalogParsing {
         }
 
         var imageURLs: [URL] = []
-        let root = url.deletingLastPathComponent()
+        let root = canonicalDirectoryURL(url.deletingLastPathComponent())
 
         for item in sequence.children {
             let recordType = item.children.first(where: { $0.tag == 0x00041430 }).flatMap {
@@ -91,9 +91,8 @@ struct StudyCatalogLoader: StudyCatalogParsing {
             }
 
             let components = decodeFileIDComponents(from: fileIDs.value)
-            guard !components.isEmpty else { continue }
-            let resolved = components.reduce(root) { partial, component in
-                partial.appendingPathComponent(component)
+            guard let resolved = resolveTrustedFileIDComponents(components, under: root) else {
+                continue
             }
             if FileManager.default.fileExists(atPath: resolved.path), parser.fileLooksLikeDICOM(resolved) {
                 imageURLs.append(resolved)
@@ -122,6 +121,38 @@ struct StudyCatalogLoader: StudyCatalogParsing {
                 .trimmingCharacters(in: .whitespacesAndNewlines.union(.controlCharacters))
             return text.isEmpty ? nil : text
         }
+    }
+
+    private func resolveTrustedFileIDComponents(_ components: [String], under root: URL) -> URL? {
+        guard !components.isEmpty else { return nil }
+        guard components.allSatisfy(isSafeFileIDComponent) else { return nil }
+
+        let candidate = components.reduce(root) { partial, component in
+            partial.appendingPathComponent(component)
+        }
+
+        let canonicalCandidate = canonicalFileURL(candidate)
+        guard canonicalCandidate.path.hasPrefix(root.path + "/") || canonicalCandidate.path == root.path else {
+            return nil
+        }
+
+        return canonicalCandidate
+    }
+
+    private func isSafeFileIDComponent(_ component: String) -> Bool {
+        guard !component.isEmpty else { return false }
+        if component == "." || component == ".." { return false }
+        if component.hasPrefix("/") || component.hasPrefix("~") { return false }
+        if component.contains("/") || component.contains("\\") || component.contains(":") { return false }
+        return true
+    }
+
+    private func canonicalDirectoryURL(_ url: URL) -> URL {
+        canonicalFileURL(url)
+    }
+
+    private func canonicalFileURL(_ url: URL) -> URL {
+        url.standardizedFileURL.resolvingSymlinksInPath()
     }
 
     private func scanForDICOMFiles(from root: URL) throws -> [URL] {
