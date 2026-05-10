@@ -3,6 +3,23 @@ import CoreGraphics
 import Dispatch
 import Foundation
 
+private final class PreviewGenerationState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        lock.unlock()
+    }
+
+    var isCancelled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cancelled
+    }
+}
+
 @MainActor
 final class AppViewModel: ObservableObject {
     @Published private(set) var studySource: StudySource?
@@ -22,7 +39,7 @@ final class AppViewModel: ObservableObject {
     private let studyLoader: StudyLoading
     private let imageExportService: ImageExporting
     private var activeSession: StudySession?
-    private var previewGenerationToken = UUID()
+    private var previewGenerationState = PreviewGenerationState()
 
     init(
         openPanelService: OpenPanelServicing,
@@ -116,7 +133,8 @@ final class AppViewModel: ObservableObject {
         renderedImage = nil
         seriesPreviewImages = [:]
         imagePreviewImages = [:]
-        previewGenerationToken = UUID()
+        previewGenerationState.cancel()
+        previewGenerationState = PreviewGenerationState()
         zoomScale = 1.0
         statusMessage = "Open a local study folder or ISO image to begin."
         errorMessage = nil
@@ -271,8 +289,9 @@ final class AppViewModel: ObservableObject {
     }
 
     private func schedulePreviewGeneration(for catalog: StudyCatalog) {
-        let token = UUID()
-        previewGenerationToken = token
+        previewGenerationState.cancel()
+        let previewGenerationState = PreviewGenerationState()
+        self.previewGenerationState = previewGenerationState
 
         let initialRenderedImage = renderedImage
         let selectedSeriesID = selectedSeriesID
@@ -293,7 +312,7 @@ final class AppViewModel: ObservableObject {
 
         DispatchQueue.global(qos: .utility).async { [catalog] in
             for series in catalog.series {
-                guard self.previewGenerationToken == token else { return }
+                guard !previewGenerationState.isCancelled else { return }
                 guard let firstImage = series.images.first else { continue }
 
                 let firstRendered: CGImage?
@@ -307,7 +326,7 @@ final class AppViewModel: ObservableObject {
 
                 if let firstRendered {
                     DispatchQueue.main.async {
-                        guard self.previewGenerationToken == token else { return }
+                        guard !previewGenerationState.isCancelled else { return }
                         if self.seriesPreviewImages[series.id] == nil {
                             self.seriesPreviewImages[series.id] = firstRendered
                         }
@@ -318,11 +337,11 @@ final class AppViewModel: ObservableObject {
                 }
 
                 for image in series.images.dropFirst().prefix(5) {
-                    guard self.previewGenerationToken == token else { return }
+                    guard !previewGenerationState.isCancelled else { return }
                     guard image.id != selectedImageID,
                           let rendered = try? loader.renderImage(at: image.fileURL) else { continue }
                     DispatchQueue.main.async {
-                        guard self.previewGenerationToken == token else { return }
+                        guard !previewGenerationState.isCancelled else { return }
                         if self.imagePreviewImages[image.id] == nil {
                             self.imagePreviewImages[image.id] = rendered
                         }
