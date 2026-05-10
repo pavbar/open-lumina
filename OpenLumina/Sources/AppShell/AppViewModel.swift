@@ -293,6 +293,7 @@ final class AppViewModel: ObservableObject {
 
         DispatchQueue.global(qos: .utility).async { [catalog] in
             for series in catalog.series {
+                guard self.previewGenerationToken == token else { return }
                 guard let firstImage = series.images.first else { continue }
 
                 let firstRendered: CGImage?
@@ -317,6 +318,7 @@ final class AppViewModel: ObservableObject {
                 }
 
                 for image in series.images.dropFirst().prefix(5) {
+                    guard self.previewGenerationToken == token else { return }
                     guard image.id != selectedImageID,
                           let rendered = try? loader.renderImage(at: image.fileURL) else { continue }
                     DispatchQueue.main.async {

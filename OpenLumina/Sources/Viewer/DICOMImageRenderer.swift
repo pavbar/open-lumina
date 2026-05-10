@@ -42,6 +42,11 @@ struct DICOMImageRenderer: ImageRendering {
         let photometricInterpretation = dataSet.string(for: 0x00280004) ?? "MONOCHROME2"
         let pixelRepresentation = dataSet.uint16(for: 0x00280103) ?? 0
         let bitsStored = dataSet.uint16(for: 0x00280101) ?? bitsAllocated
+
+        guard bitsStored > 0, bitsStored <= bitsAllocated else {
+            throw StudyCatalogError.unsupportedImage("Bits Stored must be between 1 and Bits Allocated.")
+        }
+
         let imageBytes = try normalizePixelData(
             pixelData,
             rows: Int(rows),

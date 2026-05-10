@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-05-10
+- Hardened DICOM rendering by rejecting invalid `Bits Stored` values outside `1...Bits Allocated`, preventing fatal traps when opening malformed images during preview generation.
+- Added a regression unit test that mutates a synthetic DICOM fixture to assert malformed `Bits Stored` metadata returns a recoverable unsupported-image error.
+- Added pre-render preview-generation token checks so queued background preview work stops promptly after a study is closed or replaced.
+
 ## 2026-03-30
 - Set the marketing version (`CFBundleShortVersionString`) to `0.1.0` and kept the build number (`CFBundleVersion`) at `1` for the first public OSS release.
 - Initialized the local `open-lumina` repository.
