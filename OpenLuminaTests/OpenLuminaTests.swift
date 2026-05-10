@@ -26,6 +26,36 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertEqual(catalog.series.first?.images.count, 2)
     }
 
+    func testDICOMDIRTraversalReferencesAreIgnored() throws {
+        let root = try makeFixtureRoot(named: "Traversal Fixture")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Traversal Fixture")
+
+        let outsideRoot = root.deletingLastPathComponent().appendingPathComponent("outside", isDirectory: true)
+        try FileManager.default.createDirectory(at: outsideRoot, withIntermediateDirectories: true)
+        let outsideFile = outsideRoot.appendingPathComponent("SECRET")
+        try Data(contentsOf: root.appendingPathComponent("SERIES1/IMAGE0001")).write(to: outsideFile)
+
+        let dicomDirURL = root.appendingPathComponent("DICOMDIR")
+        let original = try Data(contentsOf: dicomDirURL)
+        let before = Data("SERIES1\\IMAGE0001".utf8)
+        let after = Data("..\\outside\\SECRET".utf8)
+        XCTAssertEqual(before.count, after.count)
+        guard let range = original.range(of: before) else {
+            return XCTFail("Expected synthetic DICOMDIR to contain original IMAGE0001 reference.")
+        }
+        var modified = original
+        modified.replaceSubrange(range, with: after)
+        try modified.write(to: dicomDirURL)
+
+        let catalog = try StudyCatalogLoader().catalog(for: .folder(root))
+        let imageURLs = catalog.series.flatMap(\.images).map(\.fileURL)
+        let canonicalRoot = root.standardizedFileURL.resolvingSymlinksInPath().path + "/"
+
+        XCTAssertFalse(imageURLs.isEmpty)
+        XCTAssertTrue(imageURLs.allSatisfy { $0.standardizedFileURL.resolvingSymlinksInPath().path.hasPrefix(canonicalRoot) })
+        XCTAssertFalse(imageURLs.contains { $0.lastPathComponent == "SECRET" })
+    }
+
     func testDisplayNamesAreHumanFriendlyInsteadOfRawUIDs() throws {
         let root = try makeFixtureRoot(named: "sample-study-a")
         try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "sample-study-a")
