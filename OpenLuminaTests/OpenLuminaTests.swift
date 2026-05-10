@@ -53,6 +53,28 @@ final class OpenLuminaTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: mountRoot.path))
     }
 
+    func testDICOMRendererRejectsBitsStoredGreaterThanBitsAllocated() throws {
+        let root = try makeFixtureRoot(named: "Malformed Bits Stored")
+        try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Malformed Bits Stored")
+        let imageURL = root.appendingPathComponent("SERIES1/IMAGE0001")
+
+        var payload = try Data(contentsOf: imageURL)
+        let bitsStoredElement = Data([0x28, 0x00, 0x01, 0x01, 0x55, 0x53, 0x02, 0x00, 0x0C, 0x00])
+        guard let range = payload.range(of: bitsStoredElement) else {
+            XCTFail("Expected Bits Stored element in synthetic fixture")
+            return
+        }
+        payload.replaceSubrange(range, with: Data([0x28, 0x00, 0x01, 0x01, 0x55, 0x53, 0x02, 0x00, 0x11, 0x00]))
+        try payload.write(to: imageURL)
+
+        XCTAssertThrowsError(try DICOMImageRenderer().renderImage(at: imageURL)) { error in
+            guard case let StudyCatalogError.unsupportedImage(message) = error else {
+                return XCTFail("Expected unsupported image error, got: \(error)")
+            }
+            XCTAssertTrue(message.contains("Bits Stored"))
+        }
+    }
+
     func testDICOMRendererProducesImageForSyntheticFixture() throws {
         let root = try makeFixtureRoot()
         try SyntheticStudyFactory.writeSyntheticStudy(to: root, studyName: "Render Fixture")
